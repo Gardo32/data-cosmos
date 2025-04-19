@@ -1058,5 +1058,6 @@ def get_readme():
 if __name__ == '__main__':
     # Clean up on startup
     cleanup_old_files()
-    port = int(os.environ.get('PORT', 10000))
+    # Use PORT env var with fallback to 5000
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_DEBUG', '0') == '1')
