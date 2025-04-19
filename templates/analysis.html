@@ -331,8 +331,18 @@
         </div>
     </div>
 
-    <!-- Weather & Pollen Charts -->
-    <div id="weatherChart" class="h-72 w-full"></div>
+    <!-- Weather Overview -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 stat-card">
+        <div class="bg-gradient-to-r from-blue-50 to-sky-50 p-4 border-b border-blue-200">
+            <h3 class="text-base font-medium text-blue-800 flex items-center">
+                <i class="fas fa-cloud-sun text-blue-600 mr-2"></i>
+                Weather Overview
+            </h3>
+        </div>
+        <div class="p-6">
+            <div id="weatherChart" class="h-[300px] w-full"></div>
+        </div>
+    </div>
 
     <!-- Agriculture Assistant Bot -->
     <div id="bot-dialog" class="fixed bottom-0 right-0 w-96 bg-white rounded-t-xl shadow-2xl transform transition-transform duration-300 ease-in-out z-40 md:mr-4">
@@ -345,9 +355,14 @@
                         <p class="text-sm text-green-100">Ask me anything about the analysis</p>
                     </div>
                 </div>
-                <button id="bot-close" class="text-white hover:text-green-200 focus:outline-none">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="flex items-center space-x-2">
+                    <button id="bot-page" title="Open in new page" class="text-white hover:text-green-200 focus:outline-none">
+                        <i class="fas fa-external-link-alt"></i>
+                    </button>
+                    <button id="bot-close" class="text-white hover:text-green-200 focus:outline-none">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="h-96 overflow-y-auto p-4 bg-gray-50">
@@ -678,10 +693,12 @@ document.addEventListener('DOMContentLoaded', function() {
         Plotly.newPlot('weatherChart', weatherTraces, weatherLayout, config);
     }
 
-    // Bot button functionality - open in new tab
+    // Bot button functionality
     const botButton = document.getElementById('bot-button');
-    botButton.addEventListener('click', function() {
-        // Open chatbot in a new tab with the analysis ID
+    const botPage = document.getElementById('bot-page');
+    
+    // Add page button functionality
+    botPage.addEventListener('click', function() {
         window.open('/chat-bot/{{ analysis_id }}', '_blank');
     });
     

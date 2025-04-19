@@ -475,12 +475,51 @@ function hideLoading() {
 }
 
 function analyzeLocation() {
-  showLoading('Detecting your location and analyzing vegetation...');
-  fetch('/analyze-location', { method: 'POST' })
-    .then(res => res.json())
-    .then(data => data.status === 'success' ? displayResults(data) : showError('Error: ' + data.message))
-    .catch(err => showError('An error occurred: ' + err))
-    .finally(hideLoading);
+  if (!navigator.geolocation) {
+    showError('Geolocation is not supported by your browser');
+    return;
+  }
+
+  showLoading('Detecting your location...');
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const formData = new FormData();
+      formData.append('latitude', position.coords.latitude);
+      formData.append('longitude', position.coords.longitude);
+      formData.append('zoom', 15); // Default zoom level
+
+      showLoading('Analyzing vegetation at your location...');
+      fetch('/analyze-coordinates', { 
+        method: 'POST', 
+        body: formData 
+      })
+      .then(res => res.json())
+      .then(data => data.status === 'success' ? displayResults(data) : showError('Error: ' + data.message))
+      .catch(err => showError('An error occurred: ' + err))
+      .finally(hideLoading);
+    },
+    (error) => {
+      hideLoading();
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          showError('Please allow location access to use this feature');
+          break;
+        case error.POSITION_UNAVAILABLE:
+          showError('Location information is unavailable');
+          break;
+        case error.TIMEOUT:
+          showError('Location request timed out');
+          break;
+        default:
+          showError('An unknown error occurred');
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
 }
 
 function analyzeCoordinates() {

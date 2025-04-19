@@ -21,22 +21,8 @@ GEOPY_USER_AGENT = os.environ.get('GEOPY_USER_AGENT')
 class LocationService:
     @staticmethod
     def get_location():
-        """Get user's location based on IP address"""
-        try:
-            ip_location = requests.get("http://ip-api.com/json/").json()
-            if ip_location["status"] == "success":
-                latitude = ip_location["lat"]
-                longitude = ip_location["lon"]
-                city = ip_location["city"]
-                country = ip_location["country"]
-                print(f"📍 Your location: {latitude}, {longitude} ({city}, {country})")
-                return latitude, longitude, city, country
-            else:
-                print("❌ Failed to get location information")
-                return 0, 0, "Unknown", "Unknown"
-        except Exception as e:
-            print(f"❌ Error getting location: {e}")
-            return 0, 0, "Unknown", "Unknown"
+        """Deprecated: Location is now handled client-side"""
+        return 0, 0, "Unknown", "Unknown"
 
 # Module 2: Satellite Imagery
 class SatelliteImagery:
