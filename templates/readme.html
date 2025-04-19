@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}BioPixel - Documentation{% endblock %}
+{% block pagetitle %}Project Documentation{% endblock %}
+
+{% block head %}
+<!-- Add Markdown parsing library -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  .doc-section {
+    animation: fadeIn 0.6s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Markdown styling */
+  .markdown-content h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    color: #111827;
+  }
+  
+  .markdown-content h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    color: #111827;
+  }
+  
+  .markdown-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #111827;
+  }
+  
+  .markdown-content p {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    line-height: 1.7;
+    color: #374151;
+  }
+  
+  .markdown-content ul, .markdown-content ol {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    margin-left: 2rem;
+    color: #374151;
+  }
+  
+  .markdown-content ul {
+    list-style-type: disc;
+  }
+  
+  .markdown-content ol {
+    list-style-type: decimal;
+  }
+  
+  .markdown-content li {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+  
+  .markdown-content code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9em;
+    padding: 0.2em 0.4em;
+    background-color: #f3f4f6;
+    border-radius: 0.25rem;
+  }
+  
+  .markdown-content pre {
+    background-color: #f3f4f6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+  
+  .markdown-content pre code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: #1f2937;
+  }
+  
+  .markdown-content a {
+    color: #059669;
+    text-decoration: underline;
+    text-decoration-color: #a7f3d0;
+    text-underline-offset: 2px;
+    transition: all 0.15s ease;
+  }
+  
+  .markdown-content a:hover {
+    color: #047857;
+    text-decoration-color: #6ee7b7;
+  }
+  
+  .markdown-content blockquote {
+    border-left: 4px solid #d1fae5;
+    padding-left: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+    font-style: italic;
+    color: #059669;
+    background-color: #ecfdf5;
+    padding: 1rem;
+    border-radius: 0.375rem;
+  }
+  
+  .markdown-content hr {
+    border: 0;
+    height: 1px;
+    background-color: #e5e7eb;
+    margin: 2rem 0;
+  }
+  
+  .markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  
+  .markdown-content th {
+    background-color: #ecfdf5;
+    padding: 0.75rem;
+    border-bottom: 2px solid #d1fae5;
+    text-align: left;
+    font-weight: 600;
+    color: #047857;
+  }
+  
+  .markdown-content td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .markdown-content tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .markdown-content tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+  
+  .markdown-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  
+  /* Custom styling for documentation */
+  .doc-card {
+    transition: all 0.3s ease;
+  }
+  
+  .doc-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  }
+  
+  .loading-spinner {
+    border-color: #10b981;
+    border-right-color: transparent;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6 doc-section">
+    <!-- Header Section -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 doc-card">
+        <div class="bg-gradient-to-r from-green-700 to-green-600 text-white p-5">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center">
+                    <div class="bg-white/10 p-3 rounded-lg backdrop-blur-sm mr-4">
+                        <img src="/static/logo.png" alt="BioPixel Logo" class="h-8 w-auto">
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-xl">BioPixel Documentation</h2>
+                        <p class="text-green-100 text-sm">Project overview and usage guide</p>
+                    </div>
+                </div>
+                <div>
+                    <a href="/" class="bg-green-800/30 backdrop-blur-sm text-white hover:bg-green-800/40 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                        <i class="fas fa-home mr-2"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Documentation Content -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 doc-card">
+        <div class="border-b border-gray-200 bg-gray-50 py-4 px-6">
+            <h2 class="font-medium text-gray-700 flex items-center">
+                <i class="fas fa-book text-green-600 mr-2"></i>
+                Project Documentation
+            </h2>
+        </div>
+        
+        <div class="p-6">
+            <div id="markdown-container" class="prose max-w-none markdown-content">
+                <!-- Markdown content will be rendered here -->
+                <div class="flex justify-center py-8">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 loading-spinner"></div>
+                </div>
+                <p class="text-center text-gray-500">Loading documentation...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Links Section -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 doc-card">
+        <div class="border-b border-gray-200 bg-gray-50 py-4 px-6">
+            <h2 class="font-medium text-gray-700 flex items-center">
+                <i class="fas fa-link text-green-600 mr-2"></i>
+                Quick Links
+            </h2>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="#getting-started" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg transition-colors flex items-center">
+                    <div class="bg-green-100 p-3 rounded-full mr-3">
+                        <i class="fas fa-rocket text-green-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-green-800">Getting Started</h3>
+                        <p class="text-sm text-green-600">Quick setup guide</p>
+                    </div>
+                </a>
+                
+                <a href="#features" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg transition-colors flex items-center">
+                    <div class="bg-green-100 p-3 rounded-full mr-3">
+                        <i class="fas fa-star text-green-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-green-800">Features</h3>
+                        <p class="text-sm text-green-600">Key capabilities</p>
+                    </div>
+                </a>
+                
+                <a href="#api-reference" class="bg-green-50 hover:bg-green-100 p-4 rounded-lg transition-colors flex items-center">
+                    <div class="bg-green-100 p-3 rounded-full mr-3">
+                        <i class="fas fa-code text-green-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-green-800">API Reference</h3>
+                        <p class="text-sm text-green-600">Technical documentation</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const markdownContainer = document.getElementById('markdown-container');
+    
+    // Add smooth scrolling for anchor links
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('a');
+        if (target && target.hash && target.hash.startsWith('#') && document.querySelector(target.hash)) {
+            e.preventDefault();
+            const element = document.querySelector(target.hash);
+            window.scrollTo({
+                top: element.offsetTop - 100,
+                behavior: 'smooth'
+            });
+            
+            // Highlight the section briefly
+            element.classList.add('bg-green-50');
+            setTimeout(() => {
+                element.classList.remove('bg-green-50');
+            }, 1500);
+        }
+    });
+    
+    // Fetch the README.md content
+    fetch('/api/readme')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load documentation');
+            }
+            return response.text();
+        })
+        .then(markdown => {
+            // Parse and render the markdown
+            markdownContainer.innerHTML = marked.parse(markdown);
+            
+            // Handle any images with relative paths
+            const images = markdownContainer.querySelectorAll('img');
+            images.forEach(img => {
+                if (img.src.startsWith(window.location.origin) && img.src.includes('/static/')) {
+                    // Leave static references as they are
+                } else if (!img.src.startsWith('http')) {
+                    // For relative paths, assume they're in the static folder
+                    const srcPath = img.getAttribute('src');
+                    if (srcPath.startsWith('./')) {
+                        img.src = `/static/${srcPath.substring(2)}`;
+                    } else {
+                        img.src = `/static/${srcPath}`;
+                    }
+                }
+                
+                // Add loading="lazy" for better performance
+                img.setAttribute('loading', 'lazy');
+                
+                // Add a nice hover effect
+                img.classList.add('transition-transform', 'hover:scale-[1.01]');
+            });
+            
+            // Add IDs to headings for anchor links if they don't have them
+            const headings = markdownContainer.querySelectorAll('h1, h2, h3, h4, h5, h6');
+            headings.forEach(heading => {
+                if (!heading.id) {
+                    const id = heading.textContent.toLowerCase().replace(/[^\w]+/g, '-');
+                    heading.id = id;
+                }
+                
+                // Add anchor links to headings
+                const anchor = document.createElement('a');
+                anchor.href = `#${heading.id}`;
+                anchor.classList.add('ml-2', 'text-green-400', 'opacity-0', 'hover:opacity-100', 'transition-opacity');
+                anchor.innerHTML = '<i class="fas fa-link text-sm"></i>';
+                heading.appendChild(anchor);
+                
+                // Make the heading container show the anchor on hover
+                heading.classList.add('group');
+                anchor.classList.add('group-hover:opacity-100');
+            });
+            
+            // Add syntax highlighting to code blocks
+            const codeBlocks = markdownContainer.querySelectorAll('pre code');
+            if (window.hljs) {
+                codeBlocks.forEach(block => {
+                    hljs.highlightElement(block);
+                });
+            }
+            
+            // Add copy button to code blocks
+            codeBlocks.forEach(block => {
+                const pre = block.parentNode;
+                const copyButton = document.createElement('button');
+                copyButton.className = 'absolute top-2 right-2 bg-green-100 hover:bg-green-200 text-green-800 rounded px-2 py-1 text-xs';
+                copyButton.textContent = 'Copy';
+                copyButton.onclick = function() {
+                    navigator.clipboard.writeText(block.textContent);
+                    copyButton.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyButton.textContent = 'Copy';
+                    }, 2000);
+                };
+                
+                // Make the pre position relative for absolute positioning of the button
+                pre.style.position = 'relative';
+                pre.appendChild(copyButton);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading documentation:', error);
+            markdownContainer.innerHTML = `
+                <div class="bg-red-50 p-6 rounded-lg border border-red-200 text-center">
+                    <div class="text-red-500 text-5xl mb-4">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <h3 class="text-red-800 text-xl font-medium mb-3">Failed to load documentation</h3>
+                    <p class="text-red-700 mb-4">${error.message}</p>
+                    <button onclick="location.reload()" class="mt-2 px-5 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg transition-colors font-medium">
+                        <i class="fas fa-redo mr-2"></i>Retry
+                    </button>
+                </div>
+            `;
+        });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,13 @@
+flask
+gunicorn
+numpy
+pandas
+pillow
+opencv-python
+python-dotenv
+geopy
+werkzeug
+python-dateutil
+requests
+matplotlib
+plotly

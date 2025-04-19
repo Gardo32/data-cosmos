@@ -1,0 +1,630 @@
+{% extends "base.html" %}
+
+{% block title %}BioPixel - Satellite Vegetation Analyzer{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+  
+  .tab-active {
+    color: #047857;
+    border-bottom: 2px solid #047857;
+    font-weight: 500;
+  }
+  
+  .tab-inactive {
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+  }
+  
+  .tab-inactive:hover {
+    color: #047857;
+  }
+  
+  .custom-shadow {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  }
+  
+  .analysis-btn {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.2);
+  }
+  
+  .leaflet-container {
+    border-radius: 0.5rem;
+  }
+  
+  .upload-zone {
+    border: 2px dashed #d1d5db;
+    transition: all 0.3s ease;
+  }
+  
+  .upload-zone:hover {
+    border-color: #059669;
+    background-color: rgba(5, 150, 105, 0.05);
+  }
+  
+  .result-card {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .stat-card {
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto bg-white rounded-xl custom-shadow overflow-hidden border border-gray-100 my-8">
+    <div class="gradient-bg text-white p-6">
+        <div class="flex items-center">
+            <div class="bg-white/95 backdrop-blur-sm p-4 rounded-lg shadow-md mr-4">
+                <img src="/static/logo.png" alt="BioPixel Logo" class="h-12 w-auto">
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold">BioPixel</h1>
+                <p class="text-green-100 text-sm">Advanced Satellite Vegetation Analysis</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="p-8">
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200 mb-8">
+            <nav class="flex space-x-10" aria-label="Analysis Methods">
+                <button data-tab-button data-target="#loc-pane" class="pb-4 px-1 font-medium tab-active flex items-center transition-colors">
+                    <i class="fas fa-map-marker-alt mr-2"></i>My Location
+                </button>
+                <button data-tab-button data-target="#coord-pane" class="pb-4 px-1 font-medium tab-inactive flex items-center transition-colors">
+                    <i class="fas fa-globe-americas mr-2"></i>Coordinates
+                </button>
+                <button data-tab-button data-target="#upload-pane" class="pb-4 px-1 font-medium tab-inactive flex items-center transition-colors">
+                    <i class="fas fa-upload mr-2"></i>Upload Image
+                </button>
+            </nav>
+        </div>
+        
+        <!-- Location Tab -->
+        <div id="loc-pane" class="block space-y-6">
+            <div class="bg-green-50 p-5 rounded-lg text-green-800 flex items-start">
+                <i class="fas fa-info-circle text-green-600 mt-1 mr-4 text-lg"></i>
+                <div>
+                    <p class="font-medium">Analyze vegetation at your current location</p>
+                    <p class="text-sm text-green-700 mt-1">We'll use your IP address to determine your approximate location and analyze the surrounding vegetation using recent satellite imagery.</p>
+                </div>
+            </div>
+            <button id="analyzeLocationBtn" class="analysis-btn text-white px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-medium flex items-center shadow-md">
+                <i class="fas fa-satellite mr-3"></i>Analyze My Location
+            </button>
+        </div>
+        
+        <!-- Coordinates Tab -->
+        <div id="coord-pane" class="hidden space-y-6">
+            <div class="bg-blue-50 p-5 rounded-lg text-blue-800 flex items-start">
+                <i class="fas fa-info-circle text-blue-600 mt-1 mr-4 text-lg"></i>
+                <div>
+                    <p class="font-medium">Analyze vegetation at specific coordinates</p>
+                    <p class="text-sm text-blue-700 mt-1">Enter latitude and longitude coordinates or click on the map to select a location for vegetation analysis.</p>
+                </div>
+            </div>
+            
+            <form id="coordinatesForm" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div>
+                    <label for="latitude" class="block text-sm font-medium text-gray-700 mb-2">Latitude</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <input type="number" id="latitude" name="latitude" step="0.000001" required 
+                            class="focus:ring-green-500 focus:border-green-500 block w-full pl-3 pr-12 py-3 sm:text-sm border border-gray-300 rounded-lg" 
+                            placeholder="e.g., 41.881832" />
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">°N/S</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="longitude" class="block text-sm font-medium text-gray-700 mb-2">Longitude</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <input type="number" id="longitude" name="longitude" step="0.000001" required 
+                            class="focus:ring-green-500 focus:border-green-500 block w-full pl-3 pr-12 py-3 sm:text-sm border border-gray-300 rounded-lg" 
+                            placeholder="e.g., -87.623177" />
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">°E/W</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="zoom" class="block text-sm font-medium text-gray-700 mb-2">Coverage Area</label>
+                    <select id="zoom" name="zoom" 
+                        class="focus:ring-green-500 focus:border-green-500 block w-full pl-3 pr-10 py-3 sm:text-sm border border-gray-300 rounded-lg">
+                        <option value="14">Low (5km radius)</option>
+                        <option value="15" selected>Medium (2km radius)</option>
+                        <option value="16">High (1km radius)</option>
+                    </select>
+                </div>
+            </form>
+            
+            <div id="coordinatesMap" class="h-80 w-full rounded-lg shadow-md overflow-hidden border border-gray-200"></div>
+            
+            <div class="flex">
+                <button type="submit" form="coordinatesForm" class="analysis-btn text-white px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-medium flex items-center shadow-md">
+                    <i class="fas fa-search-location mr-3"></i>Analyze This Location
+                </button>
+            </div>
+        </div>
+        
+        <!-- Upload Tab -->
+        <div id="upload-pane" class="hidden space-y-6">
+            <div class="bg-purple-50 p-5 rounded-lg text-purple-800 flex items-start">
+                <i class="fas fa-image text-purple-600 mt-1 mr-4 text-lg"></i>
+                <div>
+                    <p class="font-medium">Upload your own satellite or aerial image</p>
+                    <p class="text-sm text-purple-700 mt-1">Our AI will analyze vegetation patterns in your uploaded image. For best results, use high-resolution satellite or drone imagery.</p>
+                </div>
+            </div>
+            
+            <form id="uploadForm" enctype="multipart/form-data" class="mb-4">
+                <div class="upload-zone mt-1 flex justify-center px-6 pt-8 pb-8 rounded-lg hover:border-green-400 transition-colors">
+                    <div class="space-y-3 text-center">
+                        <i class="fas fa-file-image text-gray-400 text-4xl mb-3"></i>
+                        <div class="flex flex-col items-center text-sm text-gray-600">
+                            <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-500 focus-within:outline-none mb-2">
+                                <span class="px-4 py-2 border border-green-300 rounded-lg hover:bg-green-50 transition-colors">Select a file</span>
+                                <input id="file-upload" name="file" type="file" accept=".jpg,.jpeg,.png,.gif" required class="sr-only">
+                            </label>
+                            <p class="text-gray-500">or drag and drop</p>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            PNG, JPG, GIF up to 16MB
+                        </p>
+                    </div>
+                </div>
+                <button form="uploadForm" class="mt-6 analysis-btn text-white px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-medium flex items-center shadow-md">
+                    <i class="fas fa-leaf mr-3"></i>Analyze Vegetation
+                </button>
+            </form>
+        </div>
+        
+        <!-- Results Card -->
+        <div id="resultsCard" class="hidden mt-12 result-card">
+            <div class="border-t border-gray-100 pt-8">
+                <h2 class="text-xl font-semibold mb-6 flex items-center">
+                    <span class="bg-green-100 text-green-700 p-2 rounded-full mr-3">
+                        <i class="fas fa-chart-pie"></i>
+                    </span>
+                    Analysis Results
+                </h2>
+                
+                <div class="bg-gray-50 p-8 rounded-xl mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 stat-card">
+                            <h3 class="font-medium text-gray-700 mb-3 flex items-center">
+                                <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>Location
+                            </h3>
+                            <p id="resultCoordinates" class="font-mono text-sm bg-gray-50 p-2 rounded">-</p>
+                            <p id="resultCityCountry" class="text-gray-600 mt-2">-</p>
+                        </div>
+                        
+                        <div class="col-span-2 bg-white p-5 rounded-xl shadow-sm border border-gray-100 stat-card">
+                            <h3 class="font-medium text-gray-700 mb-3 flex items-center">
+                                <i class="fas fa-leaf text-green-500 mr-2"></i>Vegetation Coverage
+                            </h3>
+                            <div class="w-full bg-gray-200 rounded-full h-5 mb-3">
+                                <div id="vegetationBar" class="bg-gradient-to-r from-green-500 to-green-600 h-5 rounded-full transition-all duration-1000 ease-out" style="width:0%"></div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <p id="vegetationPercentage" class="font-bold text-2xl text-green-700">-</p>
+                                <p class="text-gray-500">Threshold: <span id="thresholdValue" class="font-mono">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Weather & Pollen Widgets -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center stat-card">
+                            <div class="bg-red-50 p-3 rounded-full mr-4">
+                                <i class="fas fa-thermometer-half text-red-500 text-lg"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-medium text-gray-500 uppercase">Temperature</div>
+                                <div id="resultTemp" class="text-lg font-semibold text-gray-800">-</div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center stat-card">
+                            <div class="bg-blue-50 p-3 rounded-full mr-4">
+                                <i class="fas fa-tint text-blue-500 text-lg"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-medium text-gray-500 uppercase">Humidity</div>
+                                <div id="resultHumidity" class="text-lg font-semibold text-gray-800">-</div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center stat-card">
+                            <div class="bg-indigo-50 p-3 rounded-full mr-4">
+                                <i class="fas fa-cloud-rain text-indigo-500 text-lg"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-medium text-gray-500 uppercase">Precipitation</div>
+                                <div id="resultPrecip" class="text-lg font-semibold text-gray-800">-</div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center stat-card">
+                            <div class="bg-green-50 p-3 rounded-full mr-4">
+                                <i class="fas fa-pagelines text-green-500 text-lg"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-medium text-gray-500 uppercase">Pollen Risk</div>
+                                <div id="resultPollen" class="text-lg font-semibold text-gray-800">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8">
+                    <h3 class="font-medium text-gray-700 mb-4">Imagery Analysis</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 stat-card">
+                            <p class="text-xs text-center text-gray-500 mb-2 font-medium uppercase">Original Image</p>
+                            <div class="h-56 flex items-center justify-center bg-gray-50 rounded-lg">
+                                <img id="originalImage" class="max-w-full max-h-full object-contain rounded" alt="Original">
+                            </div>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 stat-card">
+                            <p class="text-xs text-center text-gray-500 mb-2 font-medium uppercase">Vegetation Highlighted</p>
+                            <div class="h-56 flex items-center justify-center bg-gray-50 rounded-lg">
+                                <img id="vegetationImage" class="max-w-full max-h-full object-contain rounded" alt="Vegetation">
+                            </div>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 stat-card">
+                            <p class="text-xs text-center text-gray-500 mb-2 font-medium uppercase">Vegetation Mask</p>
+                            <div class="h-56 flex items-center justify-center bg-gray-50 rounded-lg">
+                                <img id="maskImage" class="max-w-full max-h-full object-contain rounded" alt="Mask">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center">
+                    <a id="detailLink" href="#" class="analysis-btn text-white px-6 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-medium flex items-center shadow-md">
+                        <i class="fas fa-chart-bar mr-3"></i>View Detailed Analysis
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // File upload visual enhancement
+  const fileUpload = document.getElementById('file-upload');
+  if (fileUpload) {
+    fileUpload.addEventListener('change', function(e) {
+      const fileName = e.target.files[0]?.name;
+      if (fileName) {
+        const parent = this.closest('div.space-y-3');
+        const fileInfo = parent.querySelector('p.text-xs');
+        fileInfo.textContent = `Selected: ${fileName}`;
+        parent.querySelector('i').classList.remove('text-gray-400');
+        parent.querySelector('i').classList.add('text-green-500');
+      }
+    });
+  }
+
+  // Tab toggling with animation
+  document.querySelectorAll('[data-tab-button]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-tab-button]').forEach(b => {
+        b.classList.remove('tab-active');
+        b.classList.add('tab-inactive');
+      });
+      btn.classList.remove('tab-inactive');
+      btn.classList.add('tab-active');
+      
+      document.querySelectorAll('#loc-pane,#coord-pane,#upload-pane').forEach(p => {
+        p.classList.add('hidden');
+      });
+      
+      const target = document.querySelector(btn.dataset.target);
+      target.classList.remove('hidden');
+      
+      // Fade in animation
+      target.style.opacity = '0';
+      target.style.transform = 'translateY(10px)';
+      setTimeout(() => {
+        target.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        target.style.opacity = '1';
+        target.style.transform = 'translateY(0)';
+      }, 50);
+      
+      if(btn.dataset.target === '#coord-pane' && !window.map) initMap();
+    });
+  });
+
+  // Event listeners for actions
+  document.getElementById('analyzeLocationBtn').addEventListener('click', analyzeLocation);
+  document.getElementById('coordinatesForm').addEventListener('submit', e => { e.preventDefault(); analyzeCoordinates(); });
+  document.getElementById('uploadForm').addEventListener('submit', e => { e.preventDefault(); analyzeUpload(); });
+  
+  // Add drag and drop functionality
+  const uploadZone = document.querySelector('.upload-zone');
+  if (uploadZone) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      uploadZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+      uploadZone.classList.add('border-green-400', 'bg-green-50');
+    }
+    
+    function unhighlight() {
+      uploadZone.classList.remove('border-green-400', 'bg-green-50');
+    }
+    
+    uploadZone.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      if (files.length) {
+        document.getElementById('file-upload').files = files;
+        const fileName = files[0].name;
+        const parent = uploadZone.querySelector('div.space-y-3');
+        const fileInfo = parent.querySelector('p.text-xs');
+        fileInfo.textContent = `Selected: ${fileName}`;
+        parent.querySelector('i').classList.remove('text-gray-400');
+        parent.querySelector('i').classList.add('text-green-500');
+      }
+    }
+  }
+});
+
+let map;
+function initMap() {
+  map = L.map('coordinatesMap').setView([20, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+  
+  let marker;
+  map.on('click', e => {
+    if (marker) map.removeLayer(marker);
+    marker = L.marker(e.latlng).addTo(map);
+    document.getElementById('latitude').value = e.latlng.lat.toFixed(6);
+    document.getElementById('longitude').value = e.latlng.lng.toFixed(6);
+    
+    // Add a subtle animation to the form fields
+    const fields = [document.getElementById('latitude'), document.getElementById('longitude')];
+    fields.forEach(field => {
+      field.style.transition = 'background-color 0.3s ease';
+      field.style.backgroundColor = '#f0fdf4';
+      setTimeout(() => {
+        field.style.backgroundColor = '';
+      }, 800);
+    });
+  });
+}
+
+function showLoading(message) {
+  // Create loading overlay if it doesn't exist
+  if (!document.getElementById('loadingOverlay')) {
+    const overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    overlay.innerHTML = `
+      <div class="bg-white p-6 rounded-xl shadow-lg max-w-md w-full">
+        <div class="flex items-center justify-center mb-4">
+          <div class="w-12 h-12 rounded-full border-4 border-green-200 border-t-green-600 animate-spin"></div>
+        </div>
+        <p id="loadingMessage" class="text-center text-gray-700 font-medium"></p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+  
+  document.getElementById('loadingMessage').textContent = message;
+  document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function hideLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+function analyzeLocation() {
+  showLoading('Detecting your location and analyzing vegetation...');
+  fetch('/analyze-location', { method: 'POST' })
+    .then(res => res.json())
+    .then(data => data.status === 'success' ? displayResults(data) : showError('Error: ' + data.message))
+    .catch(err => showError('An error occurred: ' + err))
+    .finally(hideLoading);
+}
+
+function analyzeCoordinates() {
+  const formData = new FormData(document.getElementById('coordinatesForm'));
+  showLoading('Downloading satellite image and analyzing vegetation...');
+  fetch('/analyze-coordinates', { method: 'POST', body: formData })
+    .then(res => res.json())
+    .then(data => data.status === 'success' ? displayResults(data) : showError('Error: ' + data.message))
+    .catch(err => showError('An error occurred: ' + err))
+    .finally(hideLoading);
+}
+
+function analyzeUpload() {
+  const formData = new FormData(document.getElementById('uploadForm'));
+  showLoading('Analyzing vegetation in uploaded image...');
+  fetch('/analyze-upload', { method: 'POST', body: formData })
+    .then(res => res.json())
+    .then(data => data.status === 'success' ? displayResults(data) : showError('Error: ' + data.message))
+    .catch(err => showError('An error occurred: ' + err))
+    .finally(hideLoading);
+}
+
+function showError(message) {
+  // Create toast notification
+  const toast = document.createElement('div');
+  toast.className = 'fixed bottom-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-lg z-50 animate-fade-in-right';
+  toast.innerHTML = `
+    <div class="flex items-center">
+      <i class="fas fa-exclamation-circle mr-3"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  document.body.appendChild(toast);
+  
+  // Remove after 5 seconds
+  setTimeout(() => {
+    toast.classList.add('animate-fade-out');
+    setTimeout(() => {
+      document.body.removeChild(toast);
+    }, 300);
+  }, 5000);
+}
+
+function displayResults(data) {
+  const resultsCard = document.getElementById('resultsCard');
+  resultsCard.classList.remove('hidden');
+  
+  // Smooth scroll to results
+  resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  
+  // Update vegetation data with animation
+  const percent = parseFloat(data.vegetation_percentage).toFixed(2) + '%';
+  document.getElementById('vegetationPercentage').textContent = percent;
+  
+  // Animate the vegetation bar
+  setTimeout(() => {
+    document.getElementById('vegetationBar').style.width = percent;
+  }, 100);
+  
+  document.getElementById('thresholdValue').textContent = data.threshold_value;
+  
+  // Update location information
+  if (data.location) {
+    document.getElementById('resultCoordinates').textContent = data.location.latitude.toFixed(6) + ', ' + data.location.longitude.toFixed(6);
+    document.getElementById('resultCityCountry').textContent = data.location.city ? (data.location.city + ', ' + data.location.country) : 'Unknown';
+  }
+  
+  // Update images with fade-in effect
+  const images = [
+    { id: 'originalImage', src: '/images/' + data.images.original },
+    { id: 'vegetationImage', src: '/images/' + data.images.vegetation },
+    { id: 'maskImage', src: '/images/' + data.images.mask }
+  ];
+  
+  images.forEach(img => {
+    const imgEl = document.getElementById(img.id);
+    imgEl.style.opacity = '0';
+    imgEl.src = img.src;
+    imgEl.onload = function() {
+      setTimeout(() => {
+        imgEl.style.transition = 'opacity 0.5s ease';
+        imgEl.style.opacity = '1';
+      }, 100);
+    };
+  });
+  
+  // Update link to detailed page
+  const link = document.getElementById('detailLink');
+  link.href = '/analysis/' + data.analysis_id;
+  
+  // Update weather and pollen widgets with animation
+  if (data.weather && data.weather.length) {
+    const current = data.weather[0];
+    animateValue('resultTemp', '-', current['Avg Temperature (°C)'] + '°C');
+    animateValue('resultHumidity', '-', current['Avg Humidity (%)'] + '%');
+    animateValue('resultPrecip', '-', current['Total Precipitation (mm)'] + ' mm');
+  }
+  
+  // Update pollen risk widget display with appropriate styling
+  if (data.pollen) {
+    let riskLevel = '-';
+    
+    // Try to extract risk from different data formats
+    if (data.pollen.combined && data.pollen.combined.length) {
+        riskLevel = data.pollen.combined[0].Risk || '-';
+    } else if (data.pollen.latest && data.pollen.latest.length) {
+        riskLevel = data.pollen.latest[0].Risk || '-';
+    } else if (Array.isArray(data.pollen) && data.pollen.length) {
+        riskLevel = data.pollen[0].Risk || data.pollen[0].risk || '-';
+    }
+    
+    const pollenEl = document.getElementById('resultPollen');
+    
+    // Reset any existing color classes
+    pollenEl.className = 'text-lg font-semibold';
+    
+    // Add color based on risk level
+    if (riskLevel.toLowerCase().includes('low')) {
+        pollenEl.classList.add('text-green-600');
+    } else if (riskLevel.toLowerCase().includes('moderate')) {
+        pollenEl.classList.add('text-yellow-600');
+    } else if (riskLevel.toLowerCase().includes('high')) {
+        pollenEl.classList.add('text-red-600');
+    } else {
+        pollenEl.classList.add('text-gray-800');
+    }
+    
+    animateValue('resultPollen', '-', riskLevel);
+  }
+}
+
+// Helper function to animate value changes
+function animateValue(elementId, oldValue, newValue) {
+  const element = document.getElementById(elementId);
+  element.textContent = oldValue;
+  
+  // Add a subtle animation
+  element.style.transition = 'opacity 0.3s ease';
+  element.style.opacity = '0';
+  
+  setTimeout(() => {
+    element.textContent = newValue;
+    element.style.opacity = '1';
+  }, 300);
+}
+</script>
+{% endblock %}

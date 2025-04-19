@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block title %}Agriculture Assistant - BioPixel{% endblock %}
+{% block pagetitle %}Agriculture Assistant{% endblock %}
+
+{% block head %}
+<!-- Add Markdown parsing library -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  /* Chat interface styling */
+  .chat-container {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(5, 150, 105, 0.2) transparent;
+  }
+  
+  .chat-container::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .chat-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .chat-container::-webkit-scrollbar-thumb {
+    background-color: rgba(5, 150, 105, 0.2);
+    border-radius: 20px;
+  }
+  
+  .message-bubble {
+    transition: all 0.2s ease;
+    max-width: 85%;
+  }
+  
+  .message-bubble:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+  
+  .user-message {
+    background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+    border-top-right-radius: 0.125rem !important;
+  }
+  
+  .assistant-message {
+    background: white;
+    border-top-left-radius: 0.125rem !important;
+  }
+  
+  .message-appear {
+    animation: messageAppear 0.3s ease-out;
+  }
+  
+  @keyframes messageAppear {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .typing-indicator {
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .typing-dot {
+    width: 6px;
+    height: 6px;
+    margin: 0 1px;
+    background-color: #059669;
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: typingAnimation 1.4s infinite ease-in-out;
+  }
+  
+  .typing-dot:nth-child(1) { animation-delay: 0s; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  
+  @keyframes typingAnimation {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+  }
+  
+  .send-button {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .send-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+  }
+  
+  .send-button:active {
+    transform: translateY(1px);
+  }
+  
+  /* Markdown styling for chat messages */
+  .markdown-message p {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+  
+  .markdown-message ul, .markdown-message ol {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    margin-left: 1.5rem;
+  }
+  
+  .markdown-message ul {
+    list-style-type: disc;
+  }
+  
+  .markdown-message ol {
+    list-style-type: decimal;
+  }
+  
+  .markdown-message li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .markdown-message code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.9em;
+    padding: 0.2em 0.4em;
+    background-color: #f3f4f6;
+    border-radius: 0.25rem;
+  }
+  
+  .markdown-message pre {
+    background-color: #f3f4f6;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+  }
+  
+  .markdown-message pre code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+  
+  .markdown-message a {
+    color: #059669;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: all 0.15s ease;
+  }
+  
+  .markdown-message a:hover {
+    color: #047857;
+  }
+  
+  .markdown-message h1, .markdown-message h2, .markdown-message h3, .markdown-message h4 {
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #047857;
+  }
+  
+  .markdown-message h1 {
+    font-size: 1.25rem;
+  }
+  
+  .markdown-message h2 {
+    font-size: 1.15rem;
+  }
+  
+  .markdown-message h3 {
+    font-size: 1.05rem;
+  }
+  
+  .markdown-message blockquote {
+    border-left: 3px solid #a7f3d0;
+    padding: 0.5rem 0.75rem;
+    margin: 0.5rem 0;
+    background-color: #ecfdf5;
+    border-radius: 0.25rem;
+    color: #065f46;
+  }
+  
+  .markdown-message table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5rem 0;
+    font-size: 0.9em;
+    border-radius: 0.375rem;
+    overflow: hidden;
+  }
+  
+  .markdown-message th {
+    background-color: #ecfdf5;
+    padding: 0.5rem;
+    border-bottom: 1px solid #a7f3d0;
+    text-align: left;
+    font-weight: 600;
+    color: #047857;
+  }
+  
+  .markdown-message td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .markdown-message tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .markdown-message tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+  
+  .stat-card {
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+        <div class="bg-gradient-to-r from-green-700 to-green-600 text-white p-5">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center">
+                    <div class="bg-white/10 p-3 rounded-lg backdrop-blur-sm mr-4">
+                        <img src="/static/logo.png" alt="BioPixel Logo" class="h-8 w-auto">
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-xl">Agriculture Assistant</h2>
+                        <p class="text-green-100 text-sm">Analysis for {{ city }}, {{ country }}</p>
+                    </div>
+                </div>
+                <div>
+                    <a href="/analysis/{{ analysis_id }}" class="bg-white text-green-700 hover:bg-green-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm">
+                        <i class="fas fa-chart-bar mr-2"></i>Back to Analysis
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Location</div>
+                    <div class="flex items-center">
+                        <div class="bg-red-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-map-marker-alt text-red-500"></i>
+                        </div>
+                        <span class="font-medium">{{ city }}, {{ country }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Vegetation Coverage</div>
+                    <div class="flex items-center">
+                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-leaf text-green-500"></i>
+                        </div>
+                        <span class="font-bold {{ 'text-green-600' if vegetation_percentage > 30 else ('text-yellow-600' if vegetation_percentage > 15 else 'text-red-600') }}">
+                            {{ vegetation_percentage|round(2) }}%
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Status</div>
+                    <div class="flex items-center">
+                        <div class="bg-{{ 'green' if vegetation_percentage > 30 else ('yellow' if vegetation_percentage > 15 else 'red') }}-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-{{ 'check-circle' if vegetation_percentage > 30 else ('exclamation-circle' if vegetation_percentage > 15 else 'exclamation-triangle') }} text-{{ 'green' if vegetation_percentage > 30 else ('yellow' if vegetation_percentage > 15 else 'red') }}-500"></i>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800' if vegetation_percentage > 30 else ('bg-yellow-100 text-yellow-800' if vegetation_percentage > 15 else 'bg-red-100 text-red-800') }}">
+                            {% if vegetation_percentage > 30 %}
+                                Good vegetation coverage
+                            {% elif vegetation_percentage > 15 %}
+                                Moderate vegetation coverage
+                            {% else %}
+                                Low vegetation coverage
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Chat Interface -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 flex flex-col h-[650px]">
+        <div class="bg-gradient-to-r from-green-50 to-green-100 p-4 border-b border-green-200">
+            <h3 class="text-base font-medium text-green-800 flex items-center">
+                <i class="fas fa-robot text-green-600 mr-2"></i>
+                Chat with Agriculture Assistant
+            </h3>
+            <p class="text-sm text-green-600 mt-1">Ask questions about vegetation, crops, or get recommendations for your area</p>
+        </div>
+        
+        <div id="chat-container" class="bg-gray-50 p-4 flex-1 overflow-y-auto chat-container">
+            <!-- Chat messages will appear here -->
+            <div class="chat-message assistant message-appear">
+                <div class="flex items-start mb-5">
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-green-600 mr-3 shadow-sm">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-bubble assistant-message p-4 rounded-xl shadow-sm flex-1 markdown-message">
+                        <p>Hey there! 🌱 I’m <strong>Biopixi</strong> — your cheerful agri-buddy here to help you make sense of the vegetation vibes in <strong>{{ city }}, {{ country }}</strong>!</p>
+                        <p>Whether you're planting your first seed or planning your next big harvest, I’ve got your back with:</p>
+                        <ul>
+                            <li>🌾 Crop suggestions that suit your local conditions</li>
+                            <li>🌦️ Farming tips based on real vegetation and weather data</li>
+                            <li>📅 Seasonal pointers to help you plan ahead</li>
+                            <li>🌍 Easy sustainability practices to keep your land happy</li>
+                        </ul>
+                        <p>So, what’s growing on your mind today? 😊 Let’s dig in!</p>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <div id="typing-indicator" class="text-sm text-green-600 mb-3 hidden">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-green-600 mr-2 shadow-sm">
+                        <i class="fas fa-robot text-sm"></i>
+                    </div>
+                    <div class="typing-indicator">
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex">
+                <input type="text" id="user-input" class="flex-1 border border-gray-300 rounded-l-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Ask about vegetation, crops, or recommendations..." />
+                <button id="send-button" class="send-button text-white font-medium py-3 px-6 rounded-r-lg transition-colors flex items-center">
+                    <i class="fas fa-paper-plane mr-2"></i>
+                    Send
+                </button>
+            </div>
+            
+            <div class="flex justify-between mt-3">
+                <div class="text-xs text-gray-500">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Responses are generated based on your vegetation analysis data
+                </div>
+                <button id="clear-chat" class="text-xs text-gray-500 hover:text-green-600 transition-colors">
+                    <i class="fas fa-trash-alt mr-1"></i>
+                    Clear chat
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Suggested Questions -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 p-5">
+        <h3 class="text-base font-medium text-gray-700 flex items-center mb-4">
+            <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+            Suggested Questions
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <button class="suggested-question text-left bg-green-50 hover:bg-green-100 p-3 rounded-lg transition-colors text-green-800 text-sm">
+                What crops would grow well in this area?
+            </button>
+            <button class="suggested-question text-left bg-green-50 hover:bg-green-100 p-3 rounded-lg transition-colors text-green-800 text-sm">
+                How can I improve the soil quality in {{ city }}?
+            </button>
+            <button class="suggested-question text-left bg-green-50 hover:bg-green-100 p-3 rounded-lg transition-colors text-green-800 text-sm">
+                What's the best time to plant in this region?
+            </button>
+            <button class="suggested-question text-left bg-green-50 hover:bg-green-100 p-3 rounded-lg transition-colors text-green-800 text-sm">
+                How does the vegetation coverage affect farming?
+            </button>
+            <button class="suggested-question text-left bg-green-50 hover:bg-green-100 p-3 rounded-lg transition-colors text-green-800 text-sm">
+                What sustainable farming practices do you recommend?
+            </button>
+            <button class="suggested-question text-left bg-green-50 hover:bg-green-100 p-3 rounded-lg transition-colors text-green-800 text-sm">
+                How will climate change affect agriculture here?
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatContainer = document.getElementById('chat-container');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const clearChatButton = document.getElementById('clear-chat');
+    const suggestedQuestions = document.querySelectorAll('.suggested-question');
+    
+    // Focus input on page load
+    userInput.focus();
+
+    // Function to add a message to the chat
+    function addMessage(message, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message ' + sender + ' message-appear';
+        
+        const innerDiv = document.createElement('div');
+        innerDiv.className = 'flex items-start mb-5';
+        
+        // Adjust alignment based on sender
+        if (sender === 'user') {
+            innerDiv.className += ' justify-end';
+        }
+        
+        const iconDiv = document.createElement('div');
+        
+        if (sender === 'user') {
+            iconDiv.className = 'w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600 ml-3 shadow-sm';
+            innerDiv.appendChild(document.createElement('div')); // Spacer for alignment
+        } else {
+            iconDiv.className = 'w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 text-green-600 mr-3 shadow-sm';
+        }
+        
+        const icon = document.createElement('i');
+        icon.className = sender === 'user' ? 'fas fa-user' : 'fas fa-robot';
+        iconDiv.appendChild(icon);
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `message-bubble ${sender === 'user' ? 'user-message' : 'assistant-message'} p-4 rounded-xl shadow-sm flex-1`;
+        
+        // Add markdown-message class for assistant messages
+        if (sender === 'assistant') {
+            contentDiv.classList.add('markdown-message');
+            // Parse markdown for assistant messages
+            contentDiv.innerHTML = marked.parse(message);
+        } else {
+            // For user messages, just set the text
+            const text = document.createElement('p');
+            text.className = 'text-gray-800';
+            text.textContent = message;
+            contentDiv.appendChild(text);
+        }
+        
+        if (sender === 'user') {
+            innerDiv.appendChild(contentDiv);
+            innerDiv.appendChild(iconDiv);
+        } else {
+            innerDiv.appendChild(iconDiv);
+            innerDiv.appendChild(contentDiv);
+        }
+        
+        messageDiv.appendChild(innerDiv);
+        
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    // Function to handle sending a user message
+    function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+        
+        // Add user message to chat
+        addMessage(message, 'user');
+        
+        // Clear input
+        userInput.value = '';
+        
+        // Show typing indicator
+        typingIndicator.classList.remove('hidden');
+        
+        // Send message to backend
+        fetch('/rag-bot/{{ analysis_id }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query: message }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Hide typing indicator with a slight delay for a more natural feel
+            setTimeout(() => {
+                typingIndicator.classList.add('hidden');
+                
+                if (data.status === 'error') {
+                    // Handle error in response
+                    addMessage('Sorry, there was an error processing your request: ' + data.error, 'assistant');
+                } else {
+                    // Add assistant's response to chat, now with markdown support
+                    addMessage(data.response, 'assistant');
+                }
+            }, 500 + Math.random() * 1000); // Random delay between 500ms and 1500ms
+        })
+        .catch(error => {
+            // Hide typing indicator
+            typingIndicator.classList.add('hidden');
+            
+            // Add error message
+            addMessage('Sorry, there was an error processing your request. Please try again.', 'assistant');
+            console.error('Error:', error);
+        });
+    }
+
+    // Event listeners
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+    
+    // Clear chat functionality
+    clearChatButton.addEventListener('click', function() {
+        // Remove all messages except the first one (welcome message)
+        const messages = chatContainer.querySelectorAll('.chat-message');
+        for (let i = 1; i < messages.length; i++) {
+            messages[i].remove();
+        }
+    });
+    
+    // Suggested questions functionality
+    suggestedQuestions.forEach(button => {
+        button.addEventListener('click', function() {
+            userInput.value = this.textContent.trim();
+            userInput.focus();
+            // Optional: automatically send the message
+            sendMessage();
+        });
+    });
+    
+    // Add animation to send button
+    sendButton.addEventListener('mouseenter', function() {
+        this.querySelector('i').className = 'fas fa-paper-plane-top mr-2';
+    });
+    
+    sendButton.addEventListener('mouseleave', function() {
+        this.querySelector('i').className = 'fas fa-paper-plane mr-2';
+    });
+});
+</script>
+{% endblock %}

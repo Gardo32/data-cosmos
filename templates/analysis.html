@@ -1,0 +1,768 @@
+{% extends "base.html" %}
+
+{% block title %}Detailed Vegetation Analysis - BioPixel{% endblock %}
+{% block pagetitle %}Analysis Details{% endblock %}
+
+{% block head %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+  .stat-card {
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  }
+  
+  .analysis-btn {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.2);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .image-card {
+    transition: all 0.3s ease;
+  }
+  
+  .image-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6 fade-in">
+    <!-- Header Section -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+        <div class="bg-gradient-to-r from-green-700 to-green-600 text-white p-5">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center">
+                    <div class="bg-white/10 p-3 rounded-lg backdrop-blur-sm mr-4">
+                        <img src="/static/logo.png" alt="BioPixel Logo" class="h-8 w-auto">
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-xl">Vegetation Analysis Report</h2>
+                        <p class="text-green-100 text-sm">{{ analysis_date }}</p>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="/generate-report/{{ analysis_id }}" class="bg-white text-green-700 hover:bg-green-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm">
+                        <i class="fas fa-file-alt mr-2"></i>Generate Report
+                    </a>
+                    <a href="/recent-analyses" class="bg-green-800/30 backdrop-blur-sm text-white hover:bg-green-800/40 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                        <i class="fas fa-arrow-left mr-2"></i>Back
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Location</div>
+                    <div class="flex items-center">
+                        <div class="bg-red-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-map-marker-alt text-red-500"></i>
+                        </div>
+                        <span class="font-medium">{{ city }}, {{ country }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Coordinates</div>
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-globe text-blue-500"></i>
+                        </div>
+                        <span class="font-mono text-sm">{{ latitude|round(4) }}, {{ longitude|round(4) }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Vegetation Coverage</div>
+                    <div class="flex items-center">
+                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-leaf text-green-500"></i>
+                        </div>
+                        <span class="font-bold {{ 'text-green-600' if vegetation_percentage > 30 else ('text-yellow-600' if vegetation_percentage > 15 else 'text-red-600') }}">
+                            {{ vegetation_percentage|round(2) }}%
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Status</div>
+                    <div class="flex items-center">
+                        <div class="bg-{{ 'green' if vegetation_percentage > 30 else ('yellow' if vegetation_percentage > 15 else 'red') }}-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-{{ 'check-circle' if vegetation_percentage > 30 else ('exclamation-circle' if vegetation_percentage > 15 else 'exclamation-triangle') }} text-{{ 'green' if vegetation_percentage > 30 else ('yellow' if vegetation_percentage > 15 else 'red') }}-500"></i>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800' if vegetation_percentage > 30 else ('bg-yellow-100 text-yellow-800' if vegetation_percentage > 15 else 'bg-red-100 text-red-800') }}">
+                            {% if vegetation_percentage > 30 %}
+                                Good vegetation coverage
+                            {% elif vegetation_percentage > 15 %}
+                                Moderate vegetation coverage
+                            {% else %}
+                                Low vegetation coverage
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analysis Overview -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Vegetation Gauge -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 p-6 stat-card">
+            <h3 class="text-base font-medium text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-chart-pie text-green-600 mr-2"></i>
+                Vegetation Summary
+            </h3>
+            <div class="flex flex-col items-center">
+                <div class="w-44 h-44 mb-6">
+                    <div id="vegetationGauge" class="w-full h-full"></div>
+                </div>
+                
+                <div class="w-full {{ 'bg-green-100 text-green-800 border-green-200' if vegetation_percentage > 30 else 'bg-yellow-100 text-yellow-800 border-yellow-200' if vegetation_percentage > 15 else 'bg-red-100 text-red-800 border-red-200' }} p-4 rounded-lg text-sm border text-center">
+                    <div class="font-medium flex items-center justify-center">
+                        <i class="{{ 'fas fa-check-circle text-green-600' if vegetation_percentage > 30 else 'fas fa-exclamation-circle text-yellow-600' if vegetation_percentage > 15 else 'fas fa-exclamation-triangle text-red-600' }} mr-2"></i>
+                        <span>
+                        {% if vegetation_percentage > 30 %}
+                            Good vegetation coverage
+                        {% elif vegetation_percentage > 15 %}
+                            Moderate vegetation coverage
+                        {% else %}
+                            Low vegetation coverage
+                        {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Location Map (Placeholder) -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 p-6 col-span-2 stat-card">
+            <h3 class="text-base font-medium text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-map-marked-alt text-blue-600 mr-2"></i>
+                Geographic Context
+            </h3>
+            <div class="overflow-hidden bg-gray-100 rounded-lg h-64">
+                <div class="h-full flex items-center justify-center bg-slate-50">
+                    <div class="text-center">
+                        <i class="fas fa-map-marked-alt text-slate-300 text-5xl mb-3"></i>
+                        <p class="text-slate-600 font-medium">Map data for {{ city }}, {{ country }}</p>
+                        <p class="text-sm text-slate-400 mt-1">{{ latitude }}, {{ longitude }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Weather & Pollen Widgets -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center stat-card">
+            <div class="bg-red-50 p-3 rounded-full mr-4">
+                <i class="fas fa-thermometer-half text-red-500 text-xl"></i>
+            </div>
+            <div>
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</div>
+                <div id="currentTemp" class="text-lg font-semibold text-gray-800 mt-1">-</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center stat-card">
+            <div class="bg-blue-50 p-3 rounded-full mr-4">
+                <i class="fas fa-tint text-blue-500 text-xl"></i>
+            </div>
+            <div>
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Humidity</div>
+                <div id="currentHumidity" class="text-lg font-semibold text-gray-800 mt-1">-</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center stat-card">
+            <div class="bg-indigo-50 p-3 rounded-full mr-4">
+                <i class="fas fa-cloud-rain text-indigo-500 text-xl"></i>
+            </div>
+            <div>
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Precipitation</div>
+                <div id="currentPrecip" class="text-lg font-semibold text-gray-800 mt-1">-</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center stat-card">
+            <div class="bg-green-50 p-3 rounded-full mr-4">
+                <i class="fas fa-pagelines text-green-500 text-xl"></i>
+            </div>
+            <div>
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Pollen Risk</div>
+                <div id="currentPollenRisk" class="text-lg font-semibold text-gray-800 mt-1">-</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Analysis Section -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+        <div class="border-b border-gray-200 bg-gray-50 py-4 px-6">
+            <h2 class="font-medium text-gray-700 flex items-center">
+                <i class="fas fa-image text-green-600 mr-2"></i>
+                Analysis View
+            </h2>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Original Image -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden image-card">
+                    <div class="border-b border-gray-100 px-4 py-3 bg-gray-50">
+                        <h3 class="text-sm font-medium text-gray-700 flex items-center">
+                            <i class="fas fa-image text-blue-500 mr-2"></i>
+                            Original Image
+                        </h3>
+                    </div>
+                    <div class="p-4 h-56 flex items-center justify-center bg-gray-50">
+                        <img id="originalImage" class="max-w-full max-h-full object-contain rounded" alt="Original">
+                    </div>
+                    <div class="px-4 py-3 bg-gray-50 text-xs text-gray-500 border-t border-gray-100">
+                        Base satellite imagery
+                    </div>
+                </div>
+                
+                <!-- Vegetation Highlighted -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden image-card">
+                    <div class="border-b border-gray-100 px-4 py-3 bg-gray-50">
+                        <h3 class="text-sm font-medium text-gray-700 flex items-center">
+                            <i class="fas fa-leaf text-green-500 mr-2"></i>
+                            Vegetation Highlighted
+                        </h3>
+                    </div>
+                    <div class="p-4 h-56 flex items-center justify-center bg-gray-50">
+                        <img id="vegetationImage" class="max-w-full max-h-full object-contain rounded" alt="Vegetation">
+                    </div>
+                    <div class="px-4 py-3 bg-gray-50 text-xs text-gray-500 border-t border-gray-100">
+                        Green areas represent detected vegetation
+                    </div>
+                </div>
+                
+                <!-- Vegetation Mask -->
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden image-card">
+                    <div class="border-b border-gray-100 px-4 py-3 bg-gray-50">
+                        <h3 class="text-sm font-medium text-gray-700 flex items-center">
+                            <i class="fas fa-chart-pie text-purple-500 mr-2"></i>
+                            Vegetation Mask
+                        </h3>
+                    </div>
+                    <div class="p-4 h-56 flex items-center justify-center bg-gray-50">
+                        <img id="maskImage" class="max-w-full max-h-full object-contain rounded" alt="Mask">
+                    </div>
+                    <div class="px-4 py-3 bg-gray-50 text-xs text-gray-500 border-t border-gray-100">
+                        Binary mask of detected vegetation areas
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vegetation Distribution Chart -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 stat-card">
+        <div class="bg-gradient-to-r from-green-50 to-green-100 p-4 border-b border-green-200">
+            <h3 class="text-base font-medium text-green-800 flex items-center">
+                <i class="fas fa-chart-area text-green-600 mr-2"></i>
+                Vegetation Distribution
+            </h3>
+        </div>
+        <div class="p-6">
+            <div id="vegetationHistogram" class="h-[350px] w-full"></div>
+        </div>
+    </div>
+    
+    <!-- RGB and Heatmap Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- RGB Channel Distribution -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 stat-card">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border-b border-blue-200">
+                <h3 class="text-base font-medium text-blue-800 flex items-center">
+                    <i class="fas fa-palette text-blue-600 mr-2"></i>
+                    RGB Channel Distribution
+                </h3>
+            </div>
+            <div class="p-6">
+                <div id="rgbHistogram" class="h-[300px] w-full"></div>
+            </div>
+        </div>
+        
+        <!-- Vegetation Intensity Map -->
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 stat-card">
+            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 border-b border-emerald-200">
+                <h3 class="text-base font-medium text-emerald-800 flex items-center">
+                    <i class="fas fa-map text-emerald-600 mr-2"></i>
+                    Vegetation Intensity Map
+                </h3>
+            </div>
+            <div class="p-6">
+                <div id="heatmap" class="h-[300px] w-full"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Historical Trend -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 stat-card">
+        <div class="bg-gradient-to-r from-purple-50 to-fuchsia-50 p-4 border-b border-purple-200">
+            <h3 class="text-base font-medium text-purple-800 flex items-center">
+                <i class="fas fa-chart-line text-purple-600 mr-2"></i>
+                Future Vegetation Projection
+            </h3>
+        </div>
+        <div class="p-6">
+            <div id="historicalTrend" class="h-[300px] w-full"></div>
+        </div>
+    </div>
+
+    <!-- Weather & Pollen Charts -->
+    <div id="weatherChart" class="h-72 w-full"></div>
+
+    <!-- Agriculture Assistant Bot -->
+    <div id="bot-dialog" class="fixed bottom-0 right-0 w-96 bg-white rounded-t-xl shadow-2xl transform transition-transform duration-300 ease-in-out z-40 md:mr-4">
+        <div class="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-t-xl cursor-move">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-robot text-2xl mr-3"></i>
+                    <div>
+                        <h3 class="font-medium">Agriculture Assistant</h3>
+                        <p class="text-sm text-green-100">Ask me anything about the analysis</p>
+                    </div>
+                </div>
+                <button id="bot-close" class="text-white hover:text-green-200 focus:outline-none">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        <div class="h-96 overflow-y-auto p-4 bg-gray-50">
+            <div id="bot-messages" class="space-y-4"></div>
+        </div>
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <form id="bot-form" class="flex items-center space-x-2">
+                <input type="text" id="bot-input" class="flex-1 rounded-lg border-gray-300 focus:ring-green-500 focus:border-green-500" placeholder="Ask about vegetation, weather, or farming...">
+                <button type="submit" class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <button id="bot-button" class="fixed bottom-6 right-6 bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg rounded-full w-16 h-16 flex items-center justify-center cursor-pointer z-40 transition-all hover:scale-110">
+        <i class="fas fa-robot text-2xl"></i>
+    </button>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load images and data with fade-in effect
+    const images = [
+        { id: 'originalImage', src: '/images/{{ images.original }}' },
+        { id: 'vegetationImage', src: '/images/{{ images.vegetation }}' },
+        { id: 'maskImage', src: '/images/{{ images.mask }}' }
+    ];
+    
+    images.forEach(img => {
+        const imgEl = document.getElementById(img.id);
+        imgEl.style.opacity = '0';
+        imgEl.src = img.src;
+        imgEl.onload = function() {
+            setTimeout(() => {
+                imgEl.style.transition = 'opacity 0.5s ease';
+                imgEl.style.opacity = '1';
+            }, 100);
+        };
+    });
+
+    const weatherData = {{ weather|tojson }};
+    const pollenData = {{ pollen|tojson }};
+
+    // Populate current widget values with animation
+    if (weatherData && weatherData.length) {
+        const current = weatherData[0];
+        animateValue('currentTemp', '-', current['Avg Temperature (°C)'] + '°C');
+        animateValue('currentHumidity', '-', current['Avg Humidity (%)'] + '%');
+        animateValue('currentPrecip', '-', current['Total Precipitation (mm)'] + ' mm');
+    }
+    
+    // Update how pollen data is accessed for the widget
+    if (pollenData) {
+        let riskLevel = 'Unknown';
+        
+        // Try to find risk level from different data formats
+        if (pollenData.combined && pollenData.combined.length) {
+            riskLevel = pollenData.combined[0].Risk || 'Unknown';
+        } else if (pollenData.latest && pollenData.latest.length) {
+            riskLevel = pollenData.latest[0].Risk || 'Unknown';
+        } else if (Array.isArray(pollenData) && pollenData.length) {
+            riskLevel = pollenData[0].Risk || pollenData[0].risk || 'Unknown';
+        }
+        
+        // Set the pollen risk level with color coding
+        const pollenEl = document.getElementById('currentPollenRisk');
+        
+        // Reset any existing color classes
+        pollenEl.className = 'text-lg font-semibold mt-1';
+        
+        // Add color coding based on risk level
+        if (riskLevel.toLowerCase().includes('low')) {
+            pollenEl.classList.add('text-green-600');
+        } else if (riskLevel.toLowerCase().includes('moderate')) {
+            pollenEl.classList.add('text-yellow-600');
+        } else if (riskLevel.toLowerCase().includes('high')) {
+            pollenEl.classList.add('text-red-600');
+        } else {
+            pollenEl.classList.add('text-gray-800');
+        }
+        
+        animateValue('currentPollenRisk', '-', riskLevel);
+    }
+
+    // Helper function to animate value changes
+    function animateValue(elementId, oldValue, newValue) {
+        const element = document.getElementById(elementId);
+        element.textContent = oldValue;
+        
+        // Add a subtle animation
+        element.style.transition = 'opacity 0.3s ease';
+        element.style.opacity = '0';
+        
+        setTimeout(() => {
+            element.textContent = newValue;
+            element.style.opacity = '1';
+        }, 300);
+    }
+
+    // Configure common chart options
+    const fontFamily = "'Inter', sans-serif";
+    const config = {
+        displayModeBar: false,
+        responsive: true
+    };
+
+    // Create a better looking gauge with Plotly
+    var gaugeData = [
+        {
+            domain: { x: [0, 1], y: [0, 1] },
+            value: {{ vegetation_percentage }},
+            type: "indicator",
+            mode: "gauge+number",
+            gauge: {
+                axis: { range: [null, 100], tickfont: { family: fontFamily } },
+                bar: { color: "rgb(22, 163, 74)" },
+                bgcolor: "white",
+                borderwidth: 0,
+                bordercolor: "white",
+                steps: [
+                    { range: [0, 15], color: "rgba(248, 113, 113, 0.3)" },
+                    { range: [15, 30], color: "rgba(250, 204, 21, 0.3)" },
+                    { range: [30, 100], color: "rgba(134, 239, 172, 0.3)" }
+                ],
+                threshold: {
+                    line: { color: "rgb(220, 38, 38)", width: 4 },
+                    thickness: 0.75,
+                    value: 30
+                }
+            },
+            number: { font: { family: fontFamily, size: 24, color: "rgb(22, 163, 74)" }, suffix: "%" }
+        }
+    ];
+    var gaugeLayout = {
+        width: 176,
+        height: 176,
+        margin: { t: 0, r: 0, l: 0, b: 0 },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        font: { family: fontFamily }
+    };
+    Plotly.newPlot('vegetationGauge', gaugeData, gaugeLayout, config);
+
+    // Vegetation distribution histogram with improved styling
+    var vegetationBins = {{ histogram_data|safe }};
+    var histData = [
+        {
+            x: vegetationBins,
+            type: 'histogram',
+            marker: {
+                color: 'rgba(22, 163, 74, 0.7)',
+                line: { color: 'rgba(22, 163, 74, 1)', width: 1 }
+            },
+            opacity: 0.9,
+            name: 'GLI Values'
+        }
+    ];
+    var histLayout = {
+        title: { text: 'Distribution of Green Leaf Index (GLI) Values', font: { family: fontFamily, size: 16 } },
+        xaxis: { title: { text: 'GLI Value', font: { family: fontFamily } }, gridcolor: 'rgba(244, 244, 248, 1)' },
+        yaxis: { title: { text: 'Frequency', font: { family: fontFamily } }, gridcolor: 'rgba(244, 244, 248, 1)' },
+        bargap: 0.05,
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { family: fontFamily }
+    };
+    Plotly.newPlot('vegetationHistogram', histData, histLayout, config);
+
+    // RGB Channel histogram with improved styling
+    var rgbData = {{ rgb_histogram|safe }};
+    var rgbHistData = [
+        { x: rgbData.r_values, type: 'histogram', marker: { color: 'rgba(239, 68, 68, 0.6)' }, name: 'Red Channel', opacity: 0.7 },
+        { x: rgbData.g_values, type: 'histogram', marker: { color: 'rgba(34, 197, 94, 0.6)' }, name: 'Green Channel', opacity: 0.7 },
+        { x: rgbData.b_values, type: 'histogram', marker: { color: 'rgba(59, 130, 246, 0.6)' }, name: 'Blue Channel', opacity: 0.7 }
+    ];
+    var rgbHistLayout = {
+        title: { text: 'RGB Channel Distribution', font: { family: fontFamily, size: 16 } },
+        xaxis: { title: { text: 'Pixel Value', font: { family: fontFamily } }, gridcolor: 'rgba(244, 244, 248, 1)' },
+        yaxis: { title: { text: 'Frequency', font: { family: fontFamily } }, gridcolor: 'rgba(244, 244, 248, 1)' },
+        barmode: 'overlay',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        legend: { font: { family: fontFamily } },
+        font: { family: fontFamily }
+    };
+    Plotly.newPlot('rgbHistogram', rgbHistData, rgbHistLayout, config);
+
+    // Vegetation heatmap with improved styling
+    var heatmapData = [
+        {
+            z: {{ heatmap_data|safe }},
+            type: 'heatmap',
+            colorscale: [
+                [0, 'rgb(247, 254, 249)'],
+                [0.25, 'rgb(163, 230, 188)'],
+                [0.5, 'rgb(74, 210, 120)'],
+                [0.75, 'rgb(37, 157, 80)'],
+                [1, 'rgb(22, 101, 52)']
+            ],
+            showscale: true,
+            colorbar: {
+                title: { text: 'Vegetation Intensity', font: { family: fontFamily } },
+                tickfont: { family: fontFamily }
+            }
+        }
+    ];
+    var heatmapLayout = {
+        title: { text: 'Vegetation Intensity Distribution', font: { family: fontFamily, size: 16 } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { family: fontFamily }
+    };
+    Plotly.newPlot('heatmap', heatmapData, heatmapLayout, config);
+
+    // Historical trend line chart with improved styling
+    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var currentMonth = new Date().getMonth();
+    var sortedMonths = [...months.slice(currentMonth), ...months.slice(0, currentMonth)];
+    var historicalData = [
+        {
+            x: sortedMonths,
+            y: {{ historical_data|safe }},
+            type: 'scatter',
+            mode: 'lines+markers',
+            marker: { color: 'rgb(147, 51, 234)', size: 8 },
+            line: { shape: 'spline', width: 3, color: 'rgb(147, 51, 234)' },
+            name: 'Projected %'
+        },
+        {
+            x: [sortedMonths[0]],
+            y: [{{ vegetation_percentage }}],
+            type: 'scatter',
+            mode: 'markers',
+            marker: { color: 'rgb(220, 38, 38)', size: 12, symbol: 'diamond-open', line: { color: 'rgb(220, 38, 38)', width: 2 } },
+            name: 'Current'
+        }
+    ];
+    var historicalLayout = {
+        title: { text: '12-Month Vegetation Projection', font: { family: fontFamily, size: 16 } },
+        xaxis: { title: { text: 'Month', font: { family: fontFamily } }, gridcolor: 'rgba(244, 244, 248, 1)' },
+        yaxis: { title: { text: 'Projected Vegetation Coverage (%)', font: { family: fontFamily } }, gridcolor: 'rgba(244, 244, 248, 1)' },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        legend: { font: { family: fontFamily } },
+        font: { family: fontFamily }
+    };
+    Plotly.newPlot('historicalTrend', historicalData, historicalLayout, config);
+
+    // Weather chart with temperature, humidity, precipitation
+    if (weatherData && weatherData.length) {
+        const dates = weatherData.map(r => r['Date']);
+        const temps = weatherData.map(r => r['Avg Temperature (°C)'] || 0);
+        const humidity = weatherData.map(r => r['Avg Humidity (%)'] || 0);
+        const precip = weatherData.map(r => r['Total Precipitation (mm)'] || 0);
+        
+        // Create separate y-axes for different metrics
+        const weatherTraces = [
+            {
+                x: dates,
+                y: temps,
+                name: 'Temperature (°C)',
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { color: 'rgb(239,68,68)', width: 2 },
+                marker: { size: 6 },
+                yaxis: 'y'
+            },
+            {
+                x: dates,
+                y: humidity,
+                name: 'Humidity (%)',
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { color: 'rgb(34,197,94)', width: 2 },
+                marker: { size: 6 },
+                yaxis: 'y2'
+            },
+            {
+                x: dates,
+                y: precip,
+                name: 'Precipitation (mm)',
+                type: 'bar',
+                marker: { color: 'rgba(59,130,246,0.6)' },
+                yaxis: 'y3'
+            }
+        ];
+        
+        const weatherLayout = {
+            title: { text: 'Weather Overview', font: { family: fontFamily, size: 16 } },
+            xaxis: {
+                title: { text: 'Date', font: { family: fontFamily } },
+                tickangle: -45,
+                gridcolor: 'rgba(244,244,248,1)'
+            },
+            yaxis: {
+                title: { text: 'Temperature (°C)', font: { family: fontFamily } },
+                titlefont: { color: 'rgb(239,68,68)' },
+                tickfont: { color: 'rgb(239,68,68)' },
+                gridcolor: 'rgba(244,244,248,1)',
+                side: 'left'
+            },
+            yaxis2: {
+                title: { text: 'Humidity (%)', font: { family: fontFamily } },
+                titlefont: { color: 'rgb(34,197,94)' },
+                tickfont: { color: 'rgb(34,197,94)' },
+                overlaying: 'y',
+                side: 'right',
+                showgrid: false
+            },
+            yaxis3: {
+                title: { text: 'Precipitation (mm)', font: { family: fontFamily } },
+                titlefont: { color: 'rgb(59,130,246)' },
+                tickfont: { color: 'rgb(59,130,246)' },
+                overlaying: 'y',
+                side: 'right',
+                position: 0.95,
+                showgrid: false
+            },
+            margin: { r: 70 },
+            showlegend: true,
+            legend: { orientation: 'h', y: -0.2 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: fontFamily }
+        };
+        
+        Plotly.newPlot('weatherChart', weatherTraces, weatherLayout, config);
+    }
+
+    // Bot button functionality - open in new tab
+    const botButton = document.getElementById('bot-button');
+    botButton.addEventListener('click', function() {
+        // Open chatbot in a new tab with the analysis ID
+        window.open('/chat-bot/{{ analysis_id }}', '_blank');
+    });
+    
+    // Add hover animation to bot button
+    botButton.addEventListener('mouseenter', function() {
+        this.innerHTML = '<i class="fas fa-comments text-2xl"></i>';
+        this.style.transform = 'scale(1.05)';
+        this.style.boxShadow = '0 8px 20px rgba(5, 150, 105, 0.3)';
+    });
+    
+    botButton.addEventListener('mouseleave', function() {
+        this.innerHTML = '<i class="fas fa-robot text-2xl"></i>';
+        this.style.transform = '';
+        this.style.boxShadow = '';
+    });
+
+    // Bot functionality
+    const botDialog = document.getElementById('bot-dialog');
+    const botClose = document.getElementById('bot-close');
+    const botForm = document.getElementById('bot-form');
+    const botInput = document.getElementById('bot-input');
+    const botMessages = document.getElementById('bot-messages');
+
+    // Toggle bot dialog
+    botButton.addEventListener('click', function() {
+        botDialog.classList.toggle('open');
+        botButton.style.display = botDialog.classList.contains('open') ? 'none' : 'flex';
+        if (botDialog.classList.contains('open')) {
+            botInput.focus();
+        }
+    });
+
+    botClose.addEventListener('click', function() {
+        botDialog.classList.remove('open');
+        botButton.style.display = 'flex';
+    });
+
+    // Handle messages
+    botForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const message = botInput.value.trim();
+        if (!message) return;
+
+        // Add user message
+        addMessage('user', message);
+        botInput.value = '';
+
+        try {
+            const response = await fetch('/rag-bot/{{ analysis_id }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: message }),
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                addMessage('bot', data.response);
+            } else {
+                addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+            }
+        } catch (error) {
+            addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+        }
+    });
+
+    function addMessage(type, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `flex ${type === 'user' ? 'justify-end' : 'justify-start'}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = type === 'user' 
+            ? 'bg-green-600 text-white rounded-lg py-2 px-4 max-w-[80%]'
+            : 'bg-white text-gray-800 rounded-lg py-2 px-4 max-w-[80%] shadow-sm border border-gray-200';
+        
+        bubble.textContent = content;
+        messageDiv.appendChild(bubble);
+        botMessages.appendChild(messageDiv);
+        botMessages.scrollTop = botMessages.scrollHeight;
+    }
+});
+</script>
+{% endblock %}

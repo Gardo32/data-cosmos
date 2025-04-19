@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: biopixel
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: 0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MAX_CONTENT_LENGTH
+        value: 16777216
+      - key: MAX_AGE_HOURS
+        value: 1
+      - key: ALLOWED_EXTENSIONS
+        value: jpg,jpeg,png,gif
+      - key: TEMP_FOLDER
+        value: /tmp
+      - key: UPLOAD_FOLDER
+        value: /tmp/datacosmos
+      - key: DATA_FOLDER
+        value: /tmp/datacosmos/data
+      - key: LLM_MODEL
+        sync: false
+      - key: LLM_TOKEN
+        sync: false
+      - key: LLM_ENDPOINT
+        sync: false
+      - key: POLLEN_API_KEY
+        sync: false
+      - key: MAPTILER_API_KEY
+        sync: false

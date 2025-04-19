@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Recent Analyses - BioPixel{% endblock %}
+{% block pagetitle %}Recent Analysis History{% endblock %}
+
+{% block head %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+  
+  .custom-shadow {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  }
+  
+  .stat-card {
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  }
+  
+  .analysis-btn {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.2);
+  }
+  
+  .table-row-hover:hover {
+    background-color: #f0fdf4;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 fade-in">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start mb-8">
+        <div>
+            <div class="flex items-center mb-2">
+                <img src="/static/logo.png" alt="BioPixel Logo" class="h-10 w-auto mr-3">
+                <h1 class="text-3xl font-bold text-gray-800">Recent Analyses</h1>
+            </div>
+            <p class="text-gray-600 mt-1">Track and revisit your vegetation analysis history</p>
+        </div>
+        <a href="/" class="analysis-btn text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center shadow-md mt-4 md:mt-0">
+            <i class="fas fa-plus mr-2"></i>New Analysis
+        </a>
+    </div>
+
+    <!-- Analytics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl custom-shadow border border-gray-200 stat-card">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="rounded-full bg-blue-100 p-3 mr-4">
+                        <i class="fas fa-chart-line text-blue-600 text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium uppercase tracking-wider">Total Analyses</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-1">{{ analyses|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-xl custom-shadow border border-gray-200 stat-card">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="rounded-full bg-green-100 p-3 mr-4">
+                        <i class="fas fa-leaf text-green-600 text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium uppercase tracking-wider">Avg. Vegetation</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-1">
+                            {% if analyses %}
+                                {{ (analyses|sum(attribute='vegetation_percentage') / analyses|length)|round(1) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-xl custom-shadow border border-gray-200 stat-card">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="rounded-full bg-purple-100 p-3 mr-4">
+                        <i class="fas fa-calendar-check text-purple-600 text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-gray-500 text-sm font-medium uppercase tracking-wider">Last Analysis</h3>
+                        <p class="text-xl font-bold text-gray-800 mt-1">
+                            {% if analyses %}
+                                {{ analyses[0].analysis_date[:10] }}
+                            {% else %}
+                                No data
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis List Table -->
+    {% if analyses %}
+    <div class="bg-white custom-shadow rounded-xl border border-gray-200 overflow-hidden">
+        <div class="border-b border-gray-200 bg-gray-50 py-4 px-6">
+            <h2 class="font-medium text-gray-700 flex items-center">
+                <i class="fas fa-history text-green-600 mr-2"></i>
+                Analysis History
+            </h2>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vegetation</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                        <th scope="col" class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 bg-white">
+                    {% for a in analyses %}
+                    <tr class="table-row-hover transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="rounded-full p-2 mr-3
+                                    {% if a.analysis_type == 'location' %}
+                                        bg-red-100
+                                    {% elif a.analysis_type == 'coordinates' %}
+                                        bg-blue-100
+                                    {% else %}
+                                        bg-green-100
+                                    {% endif %}
+                                ">
+                                    {% if a.analysis_type == 'location' %}
+                                        <i class="fas fa-map-marker-alt text-red-500"></i>
+                                    {% elif a.analysis_type == 'coordinates' %}
+                                        <i class="fas fa-globe text-blue-500"></i>
+                                    {% else %}
+                                        <i class="fas fa-file-image text-green-500"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ a.location.city or 'Unknown' }}</div>
+                                    <div class="text-xs text-gray-500">{{ a.location.country or 'Unknown' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ a.analysis_date[:10] }}</div>
+                            <div class="text-xs text-gray-500">{{ a.analysis_date[11:16] }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-20 bg-gray-200 rounded-full h-2.5 mr-3">
+                                    <div class="h-2.5 rounded-full 
+                                        {% if a.vegetation_percentage > 30 %}
+                                            bg-gradient-to-r from-green-500 to-green-600
+                                        {% elif a.vegetation_percentage > 15 %}
+                                            bg-gradient-to-r from-yellow-400 to-yellow-500
+                                        {% else %}
+                                            bg-gradient-to-r from-red-400 to-red-500
+                                        {% endif %}" 
+                                        style="width: {{ a.vegetation_percentage }}%;">
+                                    </div>
+                                </div>
+                                <span class="text-sm font-medium 
+                                    {% if a.vegetation_percentage > 30 %}
+                                        text-green-700
+                                    {% elif a.vegetation_percentage > 15 %}
+                                        text-yellow-700
+                                    {% else %}
+                                        text-red-700
+                                    {% endif %}">
+                                    {{ a.vegetation_percentage|round(1) }}%
+                                </span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if a.analysis_type == 'upload' %}
+                                <span class="font-mono bg-gray-100 px-2 py-1 rounded text-xs">{{ a.file_name }}</span>
+                            {% else %}
+                                <span class="font-mono bg-gray-100 px-2 py-1 rounded text-xs">{{ a.location.latitude|round(4) }}, {{ a.location.longitude|round(4) }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="/analysis/{{ a.id }}" class="text-white bg-green-600 hover:bg-green-700 transition-colors py-2 px-4 rounded-lg shadow-sm">
+                                <i class="fas fa-eye mr-1"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl custom-shadow border border-gray-200 p-16 text-center">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-50 text-green-500 mb-6">
+            <i class="fas fa-search text-2xl"></i>
+        </div>
+        <h3 class="text-gray-700 font-medium text-xl mb-2">No analyses found</h3>
+        <p class="text-gray-500 mb-8 max-w-md mx-auto">Start by analyzing a location or uploading an image to see your analysis history here.</p>
+        <a href="/" class="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg shadow-md text-white analysis-btn focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            <i class="fas fa-plus mr-2"></i>
+            Start New Analysis
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

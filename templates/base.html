@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BioPixel - Satellite Vegetation Analyzer{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block head %}{% endblock %}
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --primary-color: #059669;
+            --primary-light: #ecfdf5;
+            --primary-dark: #047857;
+            --accent-color: #0ea5e9;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        
+        .gradient-bg {
+            background: var(--primary-gradient);
+        }
+        
+        .custom-shadow {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+        
+        .sidebar-item {
+            position: relative;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-item.active {
+            background-color: var(--primary-light);
+            border-left: 3px solid var(--primary-color);
+            color: var(--primary-dark);
+            font-weight: 500;
+        }
+        
+        .sidebar-item:hover:not(.active) {
+            background-color: #f0fdf4;
+            border-left-color: #a7f3d0;
+        }
+        
+        .sidebar-item i {
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-item.active i {
+            color: var(--primary-color) !important;
+        }
+        
+        .sidebar-item:hover:not(.active) i {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Bot popup transition styles */
+        #bot-dialog {
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        #bot-dialog.open {
+            transform: translateY(0);
+        }
+        
+        #bot-button {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease;
+            background: var(--primary-gradient);
+        }
+        
+        #bot-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.3);
+        }
+        
+        #bot-button:active {
+            transform: scale(0.95);
+        }
+        
+        /* Loading animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            #bot-dialog {
+                border-radius: 1.5rem 1.5rem 0 0;
+                height: 80vh;
+                max-height: 500px;
+            }
+            
+            .mobile-sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 50;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            
+            .mobile-sidebar.open {
+                transform: translateX(0);
+            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        /* Fade in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row selection:bg-green-200 selection:text-green-900">
+    <!-- Sidebar Navigation -->
+    <div id="sidebar" class="bg-white custom-shadow md:w-64 w-full md:min-h-screen flex-shrink-0 border-r border-gray-200 md:relative fixed inset-y-0 left-0 z-30 transform md:translate-x-0 -translate-x-full transition-transform duration-300 ease-in-out">
+        <div class="p-5 border-b border-gray-200">
+            <a href="/" class="flex items-center space-x-3">
+                <div class="bg-gray-50 p-3 rounded-lg shadow-sm border border-gray-100">
+                    <img src="/static/logo.png" alt="BioPixel Logo" class="h-8 w-auto">
+                </div>
+                <div>
+                    <h1 class="font-bold text-gray-900 leading-tight">BioPixel</h1>
+                    <p class="text-xs text-gray-500">Vegetation Analysis</p>
+                </div>
+            </a>
+        </div>
+        
+        <nav class="py-5">
+            <div class="px-5 mb-3">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Main</p>
+            </div>
+            <ul>
+                <li>
+                    <a href="/" class="sidebar-item flex items-center px-5 py-3 text-gray-700 transition-colors">
+                        <i class="fas fa-home w-5 mr-3 text-gray-500"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/recent-analyses" class="sidebar-item flex items-center px-5 py-3 text-gray-700 transition-colors">
+                        <i class="fas fa-history w-5 mr-3 text-gray-500"></i>
+                        <span>Recent Analyses</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="px-5 mb-3 mt-6">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Tools</p>
+            </div>
+            <ul>
+                <li>
+                    <a href="/#coord-pane" class="sidebar-item flex items-center px-5 py-3 text-gray-700 transition-colors">
+                        <i class="fas fa-globe w-5 mr-3 text-gray-500"></i>
+                        <span>Coordinate Search</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/#upload-pane" class="sidebar-item flex items-center px-5 py-3 text-gray-700 transition-colors">
+                        <i class="fas fa-upload w-5 mr-3 text-gray-500"></i>
+                        <span>Upload Image</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="px-5 mb-3 mt-6">
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Resources</p>
+            </div>
+            <ul>
+                <li>
+                    <a href="/readme" class="sidebar-item flex items-center px-5 py-3 text-gray-700 transition-colors">
+                        <i class="fas fa-book w-5 mr-3 text-gray-500"></i>
+                        <span>Documentation</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="absolute bottom-0 left-0 right-0 p-5 border-t border-gray-200 bg-gray-50 md:block hidden">
+            <div class="flex items-center">
+                <div class="text-xs text-gray-500">
+                    <p>© 2023 BioPixel</p>
+                    <p class="mt-1">v1.2.0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Navigation Bar -->
+        <div class="bg-white border-b border-gray-200 custom-shadow">
+            <div class="flex items-center justify-between h-16 px-6">
+                <div class="flex items-center">
+                    <button class="md:hidden p-2 mr-2 text-gray-700 hover:text-green-600 focus:outline-none" id="mobileMenuBtn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                    <h1 class="font-medium text-lg text-gray-800">{% block pagetitle %}Satellite Vegetation Analyzer{% endblock %}</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <button class="bg-white rounded-full p-2.5 shadow-sm border border-gray-200 text-gray-500 hover:text-green-600 hover:border-green-200 transition-colors">
+                            <i class="fas fa-bell"></i>
+                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-white"></span>
+                        </button>
+                    </div>
+                    <div class="h-9 w-9 rounded-full gradient-bg text-white flex items-center justify-center shadow-sm cursor-pointer hover:shadow-md transition-shadow">
+                        <i class="fas fa-user-alt text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto p-6 bg-gray-50 fade-in">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm hidden z-50 flex-col items-center justify-center text-white">
+        <div class="bg-white/10 backdrop-blur-md p-8 rounded-2xl flex flex-col items-center max-w-md">
+            <div class="w-16 h-16 rounded-full border-4 border-green-200/30 border-t-green-500 animate-spin mb-6"></div>
+            <h4 id="loadingMessage" class="text-xl font-medium mt-2">Processing...</h4>
+            <p class="text-green-300 text-sm mt-3 flex items-center text-center">
+                <i class="fas fa-info-circle mr-2"></i>
+                Please wait while we analyze the vegetation data
+            </p>
+        </div>
+    </div>
+
+    <!-- Chat Bot Button (Optional) -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

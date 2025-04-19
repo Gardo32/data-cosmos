@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+
+{% block title %}Agricultural Report - BioPixel{% endblock %}
+{% block pagetitle %}Agricultural Report{% endblock %}
+
+{% block head %}
+<!-- Add Markdown-it for rendering markdown content -->
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+  }
+  
+  .gradient-bg {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+  
+  .custom-shadow {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  }
+  
+  .stat-card {
+    transition: all 0.3s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+  }
+  
+  .analysis-btn {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .analysis-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(4, 120, 87, 0.2);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @media print {
+    .no-print {
+      display: none;
+    }
+    
+    body {
+      background-color: white;
+    }
+    
+    .custom-shadow {
+      box-shadow: none;
+    }
+    
+    .print-break-inside-avoid {
+      break-inside: avoid;
+    }
+  }
+  
+  /* Additional styling for markdown content */
+  .prose h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: #047857; /* green-700 */
+  }
+  
+  .prose h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: #059669; /* green-600 */
+  }
+  
+  .prose p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+  
+  .prose strong {
+    font-weight: 700;
+    color: #047857; /* green-700 */
+  }
+  
+  .prose em {
+    font-style: italic;
+    color: #059669; /* green-600 */
+  }
+  
+  .prose hr {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-color: #d1fae5; /* green-100 */
+  }
+  
+  .prose table {
+    width: 100%;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+  }
+  
+  .prose table th {
+    background-color: #ecfdf5; /* green-50 */
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    border: 1px solid #a7f3d0; /* green-200 */
+  }
+  
+  .prose table td {
+    padding: 0.75rem 1rem;
+    border: 1px solid #a7f3d0; /* green-200 */
+  }
+  
+  .prose table tr:nth-child(even) {
+    background-color: #f0fdf4; /* green-50 */
+  }
+  
+  .prose ul, .prose ol {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+  
+  .prose ul li, .prose ol li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .prose blockquote {
+    border-left: 4px solid #a7f3d0; /* green-200 */
+    padding-left: 1rem;
+    font-style: italic;
+    color: #065f46; /* green-800 */
+    background-color: #f0fdf4; /* green-50 */
+    padding: 1rem;
+    margin: 1.5rem 0;
+    border-radius: 0.25rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 fade-in">
+    <!-- Header Section -->
+    <div class="bg-white rounded-xl custom-shadow overflow-hidden border border-gray-200 print-break-inside-avoid">
+        <div class="gradient-bg text-white p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="bg-white/10 p-3 rounded-lg backdrop-blur-sm mr-4">
+                        <img src="/static/logo.png" alt="BioPixel Logo" class="h-8 w-auto">
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-xl">Agricultural Report</h2>
+                        <p class="text-green-100 text-sm">{{ report_date }}</p>
+                    </div>
+                </div>
+                <div class="flex space-x-3 no-print">
+                    <button id="printReportBtn" class="bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                        <i class="fas fa-print mr-2"></i>Print
+                    </button>
+                    <a href="/analysis/{{ analysis_id }}" class="bg-white text-green-600 hover:bg-green-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Analysis
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Location</div>
+                    <div class="flex items-center">
+                        <div class="bg-red-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-map-marker-alt text-red-500"></i>
+                        </div>
+                        <span class="font-medium">{{ city }}, {{ country }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Coordinates</div>
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-globe text-blue-500"></i>
+                        </div>
+                        <span class="font-mono text-sm">{{ latitude|round(4) }}, {{ longitude|round(4) }}</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Vegetation Coverage</div>
+                    <div class="flex items-center">
+                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-leaf text-green-500"></i>
+                        </div>
+                        <span class="font-bold {{ 'text-green-600' if vegetation_percentage > 30 else ('text-yellow-600' if vegetation_percentage > 15 else 'text-red-600') }}">
+                            {{ vegetation_percentage|round(2) }}%
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Report Status</div>
+                    <div class="flex items-center">
+                        <div class="bg-{{ 'green' if report else 'yellow' }}-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-{{ 'check-circle' if report else 'clock' }} text-{{ 'green' if report else 'yellow' }}-500"></i>
+                        </div>
+                        <span class="px-2 py-1 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800' if report else 'bg-yellow-100 text-yellow-800' }}">
+                            {{ 'Generated' if report else 'Generating...' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if not report %}
+    <!-- Loading Section with Process Log -->
+    <div class="bg-white rounded-xl custom-shadow overflow-hidden border border-gray-200 p-8">
+        <div class="flex flex-col items-center justify-center py-10">
+            <div class="w-20 h-20 rounded-full border-4 border-green-200 border-t-green-500 animate-spin mb-6"></div>
+            <h3 class="text-xl font-medium text-gray-700 mt-4">Generating Agricultural Report</h3>
+            <p class="text-gray-500 text-sm mt-3 text-center mb-8 max-w-lg">
+                Our AI is analyzing vegetation data, weather patterns, and agricultural insights for this location.
+                <br>This may take a moment...
+            </p>
+            
+            <!-- Process Status -->
+            <div class="w-full max-w-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-sm font-medium text-gray-600">Process Status:</div>
+                    <div class="px-4 py-1.5 rounded-full text-xs font-semibold 
+                        {% if process_status == 'initializing' %}
+                            bg-blue-100 text-blue-800
+                        {% elif process_status == 'processing' %}
+                            bg-yellow-100 text-yellow-800
+                        {% elif process_status == 'preparing' %}
+                            bg-purple-100 text-purple-800
+                        {% elif process_status == 'connecting' %}
+                            bg-indigo-100 text-indigo-800
+                        {% elif process_status == 'finalizing' %}
+                            bg-teal-100 text-teal-800
+                        {% elif process_status == 'error' %}
+                            bg-red-100 text-red-800
+                        {% else %}
+                            bg-gray-100 text-gray-800
+                        {% endif %}
+                    ">
+                        {{ process_status|capitalize }}
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-6">
+                    <div class="h-3 rounded-full transition-all duration-700 ease-in-out
+                        {% if process_status == 'initializing' %}
+                            w-1/5 bg-gradient-to-r from-blue-400 to-blue-600
+                        {% elif process_status == 'processing' %}
+                            w-2/5 bg-gradient-to-r from-yellow-400 to-yellow-600
+                        {% elif process_status == 'preparing' %}
+                            w-3/5 bg-gradient-to-r from-purple-400 to-purple-600
+                        {% elif process_status == 'connecting' %}
+                            w-4/5 bg-gradient-to-r from-indigo-400 to-indigo-600
+                        {% elif process_status == 'finalizing' or process_status == 'completed' %}
+                            w-full bg-gradient-to-r from-green-400 to-green-600
+                        {% elif process_status == 'error' %}
+                            w-full bg-gradient-to-r from-red-400 to-red-600
+                        {% else %}
+                            w-0 bg-gradient-to-r from-gray-400 to-gray-600
+                        {% endif %}
+                    "></div>
+                </div>
+                
+                <!-- Process Log Timeline -->
+                {% if process_log and process_log|length > 0 %}
+                <div class="mt-8 border border-gray-200 rounded-lg p-6 bg-gray-50">
+                    <h4 class="text-sm font-medium text-gray-700 mb-4 flex items-center">
+                        <i class="fas fa-list-ul text-green-600 mr-2"></i>Process Log
+                    </h4>
+                    <ol class="relative border-l border-gray-300 ml-3 space-y-6">
+                        {% for log_entry in process_log %}
+                        <li class="ml-6">
+                            <span class="absolute flex items-center justify-center w-7 h-7 rounded-full -left-3.5
+                                {% if log_entry.status == 'initializing' %}
+                                    bg-blue-200
+                                {% elif log_entry.status == 'processing' %}
+                                    bg-yellow-200
+                                {% elif log_entry.status == 'preparing' %}
+                                    bg-purple-200
+                                {% elif log_entry.status == 'connecting' %}
+                                    bg-indigo-200
+                                {% elif log_entry.status == 'finalizing' %}
+                                    bg-teal-200
+                                {% elif log_entry.status == 'completed' %}
+                                    bg-green-200
+                                {% elif log_entry.status == 'error' %}
+                                    bg-red-200
+                                {% else %}
+                                    bg-gray-200
+                                {% endif %}
+                            ">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4
+                                    {% if log_entry.status == 'initializing' %}
+                                        text-blue-600
+                                    {% elif log_entry.status == 'processing' %}
+                                        text-yellow-600
+                                    {% elif log_entry.status == 'preparing' %}
+                                        text-purple-600
+                                    {% elif log_entry.status == 'connecting' %}
+                                        text-indigo-600
+                                    {% elif log_entry.status == 'finalizing' %}
+                                        text-teal-600
+                                    {% elif log_entry.status == 'completed' %}
+                                        text-green-600
+                                    {% elif log_entry.status == 'error' %}
+                                        text-red-600
+                                    {% else %}
+                                        text-gray-600
+                                    {% endif %}
+                                ">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                            </span>
+                            <h3 class="font-medium text-sm
+                                {% if log_entry.status == 'initializing' %}
+                                    text-blue-600
+                                {% elif log_entry.status == 'processing' %}
+                                    text-yellow-600
+                                {% elif log_entry.status == 'preparing' %}
+                                    text-purple-600
+                                {% elif log_entry.status == 'connecting' %}
+                                    text-indigo-600
+                                {% elif log_entry.status == 'finalizing' %}
+                                    text-teal-600
+                                {% elif log_entry.status == 'completed' %}
+                                    text-green-600
+                                {% elif log_entry.status == 'error' %}
+                                    text-red-600
+                                {% else %}
+                                    text-gray-600
+                                {% endif %}
+                            ">{{ log_entry.status|capitalize }}</h3>
+                            <p class="text-sm text-gray-600 mb-1">{{ log_entry.message }}</p>
+                            <time class="text-xs text-gray-400 italic">
+                                {% set timestamp = log_entry.timestamp.split("T") %}
+                                {% set date = timestamp[0] %}
+                                {% set time = timestamp[1].split(".")[0] %}
+                                {{ date }} {{ time }}
+                            </time>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <script>
+        // Auto-refresh the page every 5 seconds to check if report is ready
+        setTimeout(function() {
+            window.location.href = "/check-report/{{ analysis_id }}";
+        }, 5000);
+    </script>
+    {% else %}
+    <!-- Report Content -->
+    <div class="bg-white rounded-xl custom-shadow overflow-hidden border border-gray-200 print-break-inside-avoid">
+        <div class="border-b border-gray-200 bg-gray-50 p-5">
+            <h2 class="font-medium text-gray-700 flex items-center">
+                <i class="fas fa-file-alt text-green-600 mr-2"></i>
+                Agricultural Assessment Report
+            </h2>
+        </div>
+        
+        <div class="p-8">
+            <div id="reportContent" class="prose prose-green max-w-none">
+                <!-- Report content will be inserted here via JavaScript -->
+            </div>
+            <div id="rawReport" class="hidden">{{ report|safe }}</div>
+        </div>
+    </div>
+
+    <!-- Original Image and Vegetation Map -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 print-break-inside-avoid">
+        <div class="bg-white rounded-xl custom-shadow overflow-hidden border border-gray-200">
+            <div class="border-b border-gray-200 bg-gray-50 p-5">
+                <h3 class="font-medium text-gray-700 flex items-center">
+                    <i class="fas fa-satellite text-blue-600 mr-2"></i>
+                    Satellite Imagery
+                </h3>
+            </div>
+            <div class="p-6 flex items-center justify-center">
+                <img src="/images/{{ images.original }}" class="max-h-72 object-contain rounded-lg shadow-sm" alt="Satellite Image">
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl custom-shadow overflow-hidden border border-gray-200">
+            <div class="border-b border-gray-200 bg-gray-50 p-5">
+                <h3 class="font-medium text-gray-700 flex items-center">
+                    <i class="fas fa-tree text-green-600 mr-2"></i>
+                    Vegetation Distribution
+                </h3>
+            </div>
+            <div class="p-6 flex items-center justify-center">
+                <img src="/images/{{ images.vegetation }}" class="max-h-72 object-contain rounded-lg shadow-sm" alt="Vegetation Map">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Weather & Environmental Summary -->
+    <div class="bg-white rounded-xl custom-shadow overflow-hidden border border-gray-200 print-break-inside-avoid">
+        <div class="border-b border-gray-200 bg-gray-50 p-5">
+            <h3 class="font-medium text-gray-700 flex items-center">
+                <i class="fas fa-cloud-sun text-indigo-600 mr-2"></i>
+                Environmental Conditions
+            </h3>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-gray-50 p-5 rounded-xl shadow-sm stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Average Temperature</div>
+                    <div class="flex items-center">
+                        <div class="bg-red-100 p-3 rounded-full mr-3">
+                            <i class="fas fa-thermometer-half text-red-500"></i>
+                        </div>
+                        <span class="font-bold text-xl text-gray-800">
+                            {% if weather and weather|length > 0 %}
+                            {{ weather[0]['Avg Temperature (°C)'] }}°C
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 p-5 rounded-xl shadow-sm stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Average Humidity</div>
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 p-3 rounded-full mr-3">
+                            <i class="fas fa-tint text-blue-500"></i>
+                        </div>
+                        <span class="font-bold text-xl text-gray-800">
+                            {% if weather and weather|length > 0 %}
+                            {{ weather[0]['Avg Humidity (%)'] }}%
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 p-5 rounded-xl shadow-sm stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Precipitation</div>
+                    <div class="flex items-center">
+                        <div class="bg-indigo-100 p-3 rounded-full mr-3">
+                            <i class="fas fa-cloud-rain text-indigo-500"></i>
+                        </div>
+                        <span class="font-bold text-xl text-gray-800">
+                            {% if weather and weather|length > 0 %}
+                            {{ weather[0]['Total Precipitation (mm)'] }} mm
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 p-5 rounded-xl shadow-sm stat-card">
+                    <div class="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Pollen Level</div>
+                    <div class="flex items-center">
+                        <div class="bg-green-100 p-3 rounded-full mr-3">
+                            <i class="fas fa-pagelines text-green-500"></i>
+                        </div>
+                        <span class="font-bold text-xl
+                            {% if pollen and pollen.combined and pollen.combined|length > 0 %}
+                                {% if pollen.combined[0].Risk|lower == 'low' %}
+                                    text-green-600
+                                {% elif pollen.combined[0].Risk|lower == 'moderate' %}
+                                    text-yellow-600
+                                {% elif pollen.combined[0].Risk|lower == 'high' %}
+                                    text-red-600
+                                {% else %}
+                                    text-gray-800
+                                {% endif %}
+                            {% else %}
+                                text-gray-800
+                            {% endif %}
+                        ">
+                            {% if pollen and pollen.combined and pollen.combined|length > 0 %}
+                            {{ pollen.combined[0].Risk }}
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const printBtn = document.getElementById('printReportBtn');
+    if (printBtn) {
+        printBtn.addEventListener('click', function() {
+            window.print();
+        });
+    }
+    
+    // Extract and render markdown content from the report
+    const rawReport = document.getElementById('rawReport');
+    if (rawReport) {
+        const reportText = rawReport.innerHTML;
+        
+        // Extract content between <report> and </report> tags
+        const reportMatch = reportText.match(/<report>([\s\S]*?)<\/report>/);
+        let markdownContent = '';
+        
+        if (reportMatch && reportMatch[1]) {
+            markdownContent = reportMatch[1].trim();
+        } else {
+            // If no tags found, treat the entire content as markdown
+            markdownContent = reportText.trim();
+        }
+        
+        // Initialize markdown-it with options
+        const md = window.markdownit({
+            html: true,
+            linkify: true,
+            typographer: true,
+            breaks: true,
+            tables: true
+        });
+        
+        const renderedContent = md.render(markdownContent);
+        const reportContent = document.getElementById('reportContent');
+        
+        if (reportContent) {
+            reportContent.innerHTML = renderedContent;
+            
+            // Add animation to elements
+            const headings = reportContent.querySelectorAll('h2, h3');
+            headings.forEach((heading, index) => {
+                heading.style.opacity = '0';
+                heading.style.transform = 'translateY(10px)';
+                
+                setTimeout(() => {
+                    heading.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    heading.style.opacity = '1';
+                    heading.style.transform = 'translateY(0)';
+                }, 100 + (index * 100));
+            });
+            
+            // Add table styling
+            const tables = reportContent.querySelectorAll('table');
+            tables.forEach(table => {
+                table.classList.add('w-full', 'border-collapse', 'my-4');
+                
+                const rows = table.querySelectorAll('tr');
+                rows.forEach((row, index) => {
+                    if (index % 2 === 1) {
+                        row.classList.add('bg-green-50');
+                    }
+                });
+            });
+        }
+    }
+});
+</script>
+{% endblock %}
