@@ -1,3 +1,4 @@
+# Gunicorn configuration file
 import multiprocessing
 import os
 from dotenv import load_dotenv
@@ -5,13 +6,33 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-max_requests = int(os.environ.get('GUNICORN_MAX_REQUESTS', 1000))
-max_requests_jitter = int(os.environ.get('GUNICORN_MAX_REQUESTS_JITTER', 50))
+# Server socket
+bind = "0.0.0.0:" + os.environ.get("PORT", "5000")
+backlog = 2048
 
-log_file = os.environ.get('GUNICORN_LOG_FILE', "-")
+# Worker processes
+workers = multiprocessing.cpu_count() * 2 + 1
+worker_class = 'sync'
+worker_connections = 1000
+timeout = 120
+keepalive = 2
 
-workers = int(os.environ.get('GUNICORN_WORKERS', (multiprocessing.cpu_count() * 2) + 1))
-threads = int(os.environ.get('GUNICORN_THREADS', workers))
-worker_class = os.environ.get('GUNICORN_WORKER_CLASS', 'gthread')
+# Server mechanics
+daemon = False
+raw_env = []
 
-timeout = int(os.environ.get('GUNICORN_TIMEOUT', 120))
+# Logging
+errorlog = '-'
+loglevel = 'info'
+accesslog = '-'
+access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
+
+# Process naming
+proc_name = 'biopixel-gunicorn'
+
+# Server hooks
+def on_starting(server):
+    server.log.info("Starting Biopixel Vegetation Analysis server")
+
+def on_exit(server):
+    server.log.info("Shutting down Biopixel Vegetation Analysis server")

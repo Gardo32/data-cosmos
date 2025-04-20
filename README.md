@@ -6,6 +6,52 @@
 
 BioPixel is a powerful web-based platform for satellite vegetation analysis that helps users analyze, visualize, and extract agricultural insights from satellite imagery. The system leverages advanced image processing techniques, data visualization, and AI-powered analysis to provide actionable intelligence about vegetation coverage, agricultural potential, and environmental conditions.
 
+## Docker Setup
+
+### Prerequisites
+- Docker and Docker Compose installed on your system
+- Git to clone the repository
+
+### Quick Start
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/data-cosmos.git
+cd data-cosmos
+```
+
+2. Create your environment file:
+```bash
+cp .env.example .env
+```
+
+3. Edit the `.env` file with your specific configuration settings and API keys.
+
+4. Build and start the Docker container:
+```bash
+docker-compose up -d
+```
+
+5. Access the application:
+```
+http://localhost:5000
+```
+
+### Environment Variables
+
+The application uses environment variables for configuration. You can customize these in your `.env` file:
+
+- `SECRET_KEY`: Flask application secret key
+- `FLASK_ENV`: Application environment (development/production)
+- `FLASK_DEBUG`: Enable/disable debug mode (1/0)
+- `PORT`: The port the application will run on
+
+For a complete list of available environment variables, see the `.env.example` file.
+
+### Data Persistence
+
+The Docker setup mounts a volume at `./data` to persist uploaded files and analysis data between container restarts.
+
 ## Key Features
 
 ### 🌍 Multiple Analysis Methods
