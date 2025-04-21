@@ -15,31 +15,48 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    # Add stronger permissions for packages
+    # Add ALL necessary permissions
     permissions:
       contents: read
       packages: write
-      # Add this to ensure token has proper scope
       id-token: write
+      actions: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      
+      # Ensure package visibility matches repository
+      - name: Set package visibility
+        run: |
+          echo "Setting up package visibility"
+          if [ -z "$(gh api repos/${{ github.repository }} --jq '.visibility')" ]; then
+            echo "⚠️ Could not determine repository visibility"
+          else
+            echo "Repository is $(gh api repos/${{ github.repository }} --jq '.visibility')"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
 
-      # Updated login action with improved configuration
+      # Enhanced login with better error reporting
       - name: Log in to the Container registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.LLM_TOKEN }}
 
       - name: Extract metadata for Docker
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -73,12 +90,28 @@ jobs:
           NASA_API_URL=${{ secrets.NASA_API_URL }}
           EOF
 
+      # Output more detailed error info
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        id: docker_build
+        uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+      # Make the package public if needed
+      - name: Make package public
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "🔐 Setting package visibility to public..."
+          PACKAGE_NAME=$(echo "${{ github.repository_owner }}/data-cosmos" | tr '[:upper:]' '[:lower:]')
+          gh api --method PATCH /user/packages/container/$PACKAGE_NAME/visibility \
+            -f visibility="public" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
