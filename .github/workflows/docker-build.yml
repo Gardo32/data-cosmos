@@ -1,0 +1,81 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.LLM_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=short
+            latest
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          FLASK_ENV=production
+          FLASK_DEBUG=0
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          TEMP_FOLDER=temp
+          UPLOAD_FOLDER=temp/datacosmos
+          DATA_FOLDER=temp/datacosmos/data
+          MAX_CONTENT_LENGTH=16777216
+          MAX_AGE_HOURS=1
+          ALLOWED_EXTENSIONS=jpg,jpeg,png,gif
+          LLM_MODEL=${{ secrets.LLM_MODEL }}
+          LLM_TOKEN=${{ secrets.LLM_TOKEN }}
+          LLM_ENDPOINT=${{ secrets.LLM_ENDPOINT }}
+          POLLEN_API_KEY=${{ secrets.POLLEN_API_KEY }}
+          GEOPY_USER_AGENT=biopixel
+          MAPTILER_API_KEY=${{ secrets.MAPTILER_API_KEY }}
+          WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}
+          NASA_API_KEY=${{ secrets.NASA_API_KEY }}
+          WEATHER_API_REALTIME_URL=${{ secrets.WEATHER_API_REALTIME_URL }}
+          WEATHER_API_HISTORY_URL=${{ secrets.WEATHER_API_HISTORY_URL }}
+          WEATHER_API_FORECAST_URL=${{ secrets.WEATHER_API_FORECAST_URL }}
+          NASA_API_URL=${{ secrets.NASA_API_URL }}
+          EOF
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
